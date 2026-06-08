@@ -1,0 +1,23 @@
+# Secret files — never commit these
+.env
+credentials.json
+token.json
+
+# Generated data
+business_profile.json
+email_log.json
+whatsapp_log.json
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+# Vercel
+.vercel
+
+# OS
+.DS_Store
+Thumbs.db

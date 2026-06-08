@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yonderly — Set Up Your AI Employee</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">Y</span>
+        <span class="logo-text">Yonderly</span>
+      </div>
+      <p class="tagline">Your AI employee for customer emails</p>
+    </header>
+
+    <main class="card">
+      <div class="card-header">
+        <h1>Set up your AI employee</h1>
+        <p>Answer these questions so Yonderly can reply to your customers on your behalf — in your voice.</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form action="{{ url_for('submit') }}" method="POST" class="form">
+
+        <div class="field">
+          <label for="business_name">Business name</label>
+          <input
+            type="text"
+            id="business_name"
+            name="business_name"
+            placeholder="e.g. Bright Bloom Florist"
+            value="{{ profile.business_name if profile else '' }}"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="offerings">What do you sell or offer?</label>
+          <textarea
+            id="offerings"
+            name="offerings"
+            rows="3"
+            placeholder="Describe your services or products. e.g. Custom wedding bouquets, same-day delivery, corporate event flowers..."
+            required
+          >{{ profile.offerings if profile else '' }}</textarea>
+        </div>
+
+        <div class="field">
+          <label for="prices">What are your prices?</label>
+          <textarea
+            id="prices"
+            name="prices"
+            rows="3"
+            placeholder="List your pricing. e.g. Bouquets from $45, Wedding packages from $500, Delivery $15..."
+            required
+          >{{ profile.prices if profile else '' }}</textarea>
+        </div>
+
+        <div class="field">
+          <label for="common_questions">What are your most common customer questions?</label>
+          <textarea
+            id="common_questions"
+            name="common_questions"
+            rows="4"
+            placeholder="e.g. Do you deliver on Sundays? How far in advance should I order? Do you offer refunds?"
+            required
+          >{{ profile.common_questions if profile else '' }}</textarea>
+        </div>
+
+        <div class="field">
+          <label>What is your tone?</label>
+          <div class="tone-options">
+            {% set current_tone = profile.tone if profile else 'friendly' %}
+            <label class="tone-option">
+              <input type="radio" name="tone" value="professional" {{ 'checked' if current_tone == 'professional' else '' }} required>
+              <span class="tone-card">
+                <strong>Professional</strong>
+                <small>Polished and formal</small>
+              </span>
+            </label>
+            <label class="tone-option">
+              <input type="radio" name="tone" value="friendly" {{ 'checked' if current_tone == 'friendly' else '' }}>
+              <span class="tone-card">
+                <strong>Friendly</strong>
+                <small>Warm and approachable</small>
+              </span>
+            </label>
+            <label class="tone-option">
+              <input type="radio" name="tone" value="casual" {{ 'checked' if current_tone == 'casual' else '' }}>
+              <span class="tone-card">
+                <strong>Casual</strong>
+                <small>Relaxed and conversational</small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="contact_email">Customer contact email</label>
+          <input
+            type="email"
+            id="contact_email"
+            name="contact_email"
+            placeholder="hello@yourbusiness.com"
+            value="{{ profile.contact_email if profile else '' }}"
+            required
+          >
+          <span class="hint">The email address your customers write to — Yonderly will monitor this inbox.</span>
+        </div>
+
+        <div class="field">
+          <label for="restrictions">What should the AI never say or do?</label>
+          <textarea
+            id="restrictions"
+            name="restrictions"
+            rows="3"
+            placeholder="e.g. Never offer discounts without approval. Never promise same-day delivery. Never share personal phone number."
+            required
+          >{{ profile.restrictions if profile else '' }}</textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          Save &amp; activate Yonderly
+        </button>
+      </form>
+    </main>
+
+    <footer class="footer">
+      <p>Your answers are saved locally to <code>business_profile.json</code> — the brain of your AI employee.</p>
+    </footer>
+  </div>
+</body>
+</html>

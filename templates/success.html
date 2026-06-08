@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yonderly — Ready</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">Y</span>
+        <span class="logo-text">Yonderly</span>
+      </div>
+    </header>
+
+    <main class="card success-card">
+      <div class="success-icon">✓</div>
+      <h1>Yonderly is ready.</h1>
+      <p class="success-subtitle">
+        Your AI employee will now handle your emails.
+      </p>
+
+      <p class="success-detail">
+        <strong>{{ profile.business_name }}</strong> is saved and ready to go.
+        Start the email agent to begin replying to customers automatically.
+      </p>
+
+      <div class="success-actions">
+        <a href="{{ url_for('dashboard') }}" class="btn-primary btn-inline">Go to Dashboard</a>
+        <a href="{{ url_for('index') }}" class="btn-secondary">Edit profile</a>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>Profile saved to <code>business_profile.json</code></p>
+    </footer>
+  </div>
+</body>
+</html>

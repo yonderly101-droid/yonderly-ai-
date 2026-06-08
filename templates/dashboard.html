@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yonderly — Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="page page-wide">
+    <header class="dashboard-topbar">
+      <div class="dashboard-brand">
+        <div class="logo">
+          <span class="logo-icon">Y</span>
+          <span class="logo-text">Yonderly</span>
+        </div>
+        {% if profile %}
+          <span class="business-name-badge">{{ profile.business_name }}</span>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('index') }}" class="btn-settings">Settings</a>
+    </header>
+
+    <section class="stats-row">
+      <div class="stat-card">
+        <span class="stat-number">{{ stats.total_count }}</span>
+        <span class="stat-label">Total Emails Handled</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number">{{ stats.emails_today }}</span>
+        <span class="stat-label">Emails Today</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number stat-text">{{ stats.last_active }}</span>
+        <span class="stat-label">Last Active</span>
+      </div>
+    </section>
+
+    <main class="card dashboard-card">
+      <div class="dashboard-section-header">
+        <h1>Email Activity</h1>
+        {% if profile %}
+          <p class="dashboard-subtitle">Monitoring <strong>{{ profile.contact_email }}</strong></p>
+        {% endif %}
+      </div>
+
+      {% if emails %}
+        <div class="table-wrap">
+          <table class="email-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Customer Name</th>
+                <th>Customer Email</th>
+                <th>Subject</th>
+                <th>Reply Preview</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for email in emails %}
+                <tr class="email-row" data-index="{{ loop.index0 }}" tabindex="0" role="button" aria-label="View email from {{ email.customer_name }}">
+                  <td class="col-time">{{ email.timestamp }}</td>
+                  <td class="col-customer">
+                    <span class="customer-name">{{ email.customer_name }}</span>
+                  </td>
+                  <td class="col-email">{{ email.customer_email }}</td>
+                  <td class="col-subject">{{ email.subject }}</td>
+                  <td class="col-preview">{{ email.reply_preview }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">✉</div>
+          <h2>Yonderly hasn't handled any emails yet.</h2>
+          <p>Add credits to activate.</p>
+        </div>
+      {% endif %}
+    </main>
+
+    <footer class="footer">
+      <p>Data loaded from <code>email_log.json</code> · Refreshes each time you open this page</p>
+    </footer>
+  </div>
+
+  <div class="modal-overlay" id="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 id="modal-title">Email conversation</h2>
+        <button type="button" class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-meta">
+          <div><span class="meta-label">Customer</span> <span id="modal-customer"></span></div>
+          <div><span class="meta-label">Email</span> <span id="modal-email"></span></div>
+          <div><span class="meta-label">Time</span> <span id="modal-time"></span></div>
+          <div><span class="meta-label">Subject</span> <span id="modal-subject"></span></div>
+        </div>
+
+        <div class="modal-section">
+          <h3>Customer message</h3>
+          <div class="modal-text" id="modal-message"></div>
+        </div>
+
+        <div class="modal-section modal-section-reply">
+          <h3>Yonderly's reply</h3>
+          <div class="modal-text" id="modal-reply"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script id="email-data" type="application/json">{{ emails | tojson }}</script>
+  <script>
+    const overlay = document.getElementById('modal-overlay');
+    const closeBtn = document.getElementById('modal-close');
+    const emailData = JSON.parse(document.getElementById('email-data').textContent);
+
+    function openModal(index) {
+      const email = emailData[index];
+      if (!email) return;
+
+      document.getElementById('modal-customer').textContent = email.customer_name;
+      document.getElementById('modal-email').textContent = email.customer_email;
+      document.getElementById('modal-time').textContent = email.timestamp;
+      document.getElementById('modal-subject').textContent = email.subject;
+      document.getElementById('modal-message').textContent = email.customer_message;
+      document.getElementById('modal-reply').textContent = email.yonderly_reply;
+      overlay.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    document.querySelectorAll('.email-row').forEach(function(row) {
+      row.addEventListener('click', function() {
+        openModal(parseInt(row.dataset.index, 10));
+      });
+
+      row.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openModal(parseInt(row.dataset.index, 10));
+        }
+      });
+    });
+
+    function closeModal() {
+      overlay.hidden = true;
+      document.body.style.overflow = '';
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) closeModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !overlay.hidden) closeModal();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yonderly — Your Business's First AI Employee</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #06060a;
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --purple: #7c6aff;
+      --purple-light: #9d8fff;
+      --violet: #b06aff;
+      --text: #f0f0f5;
+      --text-muted: #8888a8;
+      --border-glow: rgba(124, 106, 255, 0.35);
+      --glass: rgba(12, 12, 20, 0.65);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, var(--purple) 0%, var(--violet) 50%, #d4a0ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #particles {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 0;
+      transition: background 0.4s, backdrop-filter 0.4s, border-color 0.4s;
+      border-bottom: 1px solid transparent;
+    }
+
+    .navbar.scrolled {
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom-color: rgba(124, 106, 255, 0.12);
+    }
+
+    .nav-inner {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--purple), var(--violet));
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: white;
+      box-shadow: 0 0 20px rgba(124, 106, 255, 0.4);
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.35rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), #6b4fd4);
+      color: white;
+      box-shadow: 0 0 30px rgba(124, 106, 255, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 40px rgba(124, 106, 255, 0.55);
+      animation: glow-pulse 1.5s ease infinite;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid rgba(124, 106, 255, 0.4);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--purple);
+      background: rgba(124, 106, 255, 0.08);
+      box-shadow: 0 0 25px rgba(124, 106, 255, 0.2);
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 30px rgba(124, 106, 255, 0.35); }
+      50% { box-shadow: 0 0 50px rgba(124, 106, 255, 0.6); }
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 9rem 0 4rem;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      line-height: 1.1;
+      margin-bottom: 1.25rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto 2rem;
+      line-height: 1.7;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-proof {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 3.5rem;
+    }
+
+    /* Chat mockup */
+    .chat-mockup {
+      max-width: 420px;
+      margin: 0 auto;
+      background: var(--glass);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(124, 106, 255, 0.08);
+    }
+
+    .chat-header {
+      padding: 1rem 1.25rem;
+      background: rgba(124, 106, 255, 0.08);
+      border-bottom: 1px solid rgba(124, 106, 255, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--purple), var(--violet));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+
+    .chat-header-info strong { display: block; font-size: 0.95rem; }
+    .chat-header-info span { font-size: 0.75rem; color: #34d399; }
+
+    .chat-body {
+      padding: 1.25rem;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chat-msg {
+      max-width: 85%;
+      padding: 0.7rem 1rem;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.4s, transform 0.4s;
+    }
+
+    .chat-msg.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .chat-msg.incoming {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .chat-msg.outgoing {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(124, 106, 255, 0.25), rgba(176, 106, 255, 0.15));
+      border: 1px solid rgba(124, 106, 255, 0.3);
+    }
+
+    .typing-indicator {
+      align-self: flex-end;
+      display: none;
+      gap: 4px;
+      padding: 0.75rem 1rem;
+      background: rgba(124, 106, 255, 0.15);
+      border-radius: 14px;
+    }
+
+    .typing-indicator.active { display: flex; }
+
+    .typing-indicator span {
+      width: 6px;
+      height: 6px;
+      background: var(--purple-light);
+      border-radius: 50%;
+      animation: typing-bounce 1.2s ease infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes typing-bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── Sections ── */
+    section {
+      padding: 5rem 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .section-header h2 {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* Glass cards */
+    .glass-card {
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(124, 106, 255, 0.15);
+      border-radius: 16px;
+      padding: 1.75rem;
+      transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+    }
+
+    .glass-card:hover {
+      border-color: var(--border-glow);
+      box-shadow: 0 0 40px rgba(124, 106, 255, 0.1);
+      transform: translateY(-4px);
+    }
+
+    .card-emoji {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .glass-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .glass-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* Problem */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    /* Solution */
+    .solution-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    /* How it works */
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      gap: 1rem;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--purple), var(--violet), transparent);
+      opacity: 0.4;
+    }
+
+    .timeline-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-dot {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 1.25rem;
+      background: linear-gradient(135deg, var(--purple), var(--violet));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.25rem;
+      box-shadow: 0 0 30px rgba(124, 106, 255, 0.4);
+      animation: dot-pulse 2.5s ease infinite;
+    }
+
+    .timeline-step:nth-child(2) .step-dot { animation-delay: 0.4s; }
+    .timeline-step:nth-child(3) .step-dot { animation-delay: 0.8s; }
+
+    @keyframes dot-pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(124, 106, 255, 0.3); transform: scale(1); }
+      50% { box-shadow: 0 0 40px rgba(124, 106, 255, 0.6); transform: scale(1.05); }
+    }
+
+    .timeline-step h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .timeline-step p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      max-width: 260px;
+      margin: 0 auto;
+    }
+
+    /* Pricing */
+    .pricing-wrapper {
+      display: flex;
+      justify-content: center;
+    }
+
+    .pricing-card {
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      padding: 2.5rem;
+      border: 2px solid var(--border-glow);
+      box-shadow: 0 0 60px rgba(124, 106, 255, 0.15);
+      animation: float-card 4s ease-in-out infinite;
+    }
+
+    @keyframes float-card {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .pricing-card:hover { animation-play-state: paused; }
+
+    .price-amount {
+      font-family: 'Syne', sans-serif;
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin: 1rem 0;
+    }
+
+    .price-amount span {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .pricing-features {
+      list-style: none;
+      text-align: left;
+      margin: 1.5rem 0 2rem;
+    }
+
+    .pricing-features li {
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .pricing-features li::before {
+      content: '✓';
+      color: var(--purple-light);
+      font-weight: 700;
+    }
+
+    .pricing-note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+    }
+
+    /* Waitlist */
+    .waitlist-section {
+      text-align: center;
+    }
+
+    .waitlist-form {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 480px;
+      margin: 2rem auto 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .waitlist-form input {
+      flex: 1;
+      min-width: 220px;
+      padding: 0.85rem 1.15rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(124, 106, 255, 0.25);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .waitlist-form input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 20px rgba(124, 106, 255, 0.2);
+    }
+
+    .waitlist-form input::placeholder { color: #55556a; }
+
+    .waitlist-success {
+      display: none;
+      padding: 1.5rem;
+      background: rgba(52, 211, 153, 0.1);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      border-radius: 12px;
+      max-width: 480px;
+      margin: 2rem auto 1rem;
+      font-size: 1.05rem;
+    }
+
+    .waitlist-success.show { display: block; }
+
+    .waitlist-social {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* PayPal */
+    .paypal-section {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(124, 106, 255, 0.15);
+    }
+
+    .paypal-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+
+    #paypal-button-container,
+    #paypal-waitlist-container {
+      min-height: 45px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .paypal-unconfigured {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(124, 106, 255, 0.25);
+      border-radius: 10px;
+    }
+
+    .payment-success {
+      display: none;
+      padding: 1.25rem;
+      background: rgba(52, 211, 153, 0.1);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      border-radius: 12px;
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .payment-success.show { display: block; }
+
+    /* Footer */
+    footer {
+      padding: 3rem 0 2rem;
+      border-top: 1px solid rgba(124, 106, 255, 0.1);
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-tagline {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--purple-light); }
+
+    .footer-bottom {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .problem-grid { grid-template-columns: 1fr; }
+      .solution-grid { grid-template-columns: 1fr; }
+      .timeline { flex-direction: column; align-items: center; gap: 2.5rem; }
+      .timeline::before { display: none; }
+      .nav-links a:not(.btn) { display: none; }
+    }
+
+    @media (max-width: 540px) {
+      .hero { padding-top: 7rem; }
+      .hero-buttons { flex-direction: column; align-items: center; }
+      .waitlist-form { flex-direction: column; }
+      .waitlist-form input { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="particles"></canvas>
+
+  <div class="page-content">
+
+    <!-- 1. Navigation -->
+    <nav class="navbar" id="navbar">
+      <div class="nav-inner">
+        <a href="#" class="logo">
+          <span class="logo-icon">Y</span>
+          <span class="logo-text">Yonderly</span>
+        </a>
+        <div class="nav-links">
+          <a href="#how-it-works">How it works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#waitlist" class="btn btn-primary">Get early access</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 2. Hero -->
+    <section class="hero" id="hero">
+      <div class="container">
+        <h1 class="reveal"><span class="gradient-text">Your business's first AI employee</span></h1>
+        <p class="hero-sub reveal reveal-delay-1">Yonderly handles your WhatsApp messages, replies to emails, books appointments, and follows up on leads — 24/7, at $49/month flat.</p>
+        <div class="hero-buttons reveal reveal-delay-2">
+          <a href="#waitlist" class="btn btn-primary">Join the waitlist</a>
+          <a href="#how-it-works" class="btn btn-ghost">See how it works</a>
+        </div>
+        <p class="hero-proof reveal reveal-delay-3">🔒 No credit card required · Setup in 10 minutes · Cancel anytime</p>
+
+        <div class="chat-mockup reveal">
+          <div class="chat-header">
+            <div class="chat-avatar">Y</div>
+            <div class="chat-header-info">
+              <strong>Yonderly</strong>
+              <span>● Online — replying for you</span>
+            </div>
+          </div>
+          <div class="chat-body" id="chat-body">
+            <div class="typing-indicator" id="typing">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Problem -->
+    <section id="problem">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>Every missed message is a <span class="gradient-text">missed sale</span></h2>
+        </div>
+        <div class="problem-grid">
+          <div class="glass-card reveal">
+            <div class="card-emoji">😤</div>
+            <h3>Leads go cold overnight</h3>
+            <p>Customer messages at 9PM, no reply until Monday, they've moved on.</p>
+          </div>
+          <div class="glass-card reveal reveal-delay-1">
+            <div class="card-emoji">📅</div>
+            <h3>Booking chaos</h3>
+            <p>Managing appointments across WhatsApp and email manually wastes hours every day.</p>
+          </div>
+          <div class="glass-card reveal reveal-delay-2">
+            <div class="card-emoji">💸</div>
+            <h3>Follow-ups never happen</h3>
+            <p>80% of sales need 5+ follow-ups, almost nobody does it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Solution -->
+    <section id="solution">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>Meet Yonderly — your <span class="gradient-text">AI employee</span></h2>
+        </div>
+        <div class="solution-grid">
+          <div class="glass-card reveal">
+            <div class="card-emoji">💬</div>
+            <h3>WhatsApp Agent</h3>
+            <p>Replies to customer messages 24/7 in your tone — like you, but always available.</p>
+          </div>
+          <div class="glass-card reveal reveal-delay-1">
+            <div class="card-emoji">📧</div>
+            <h3>Email Agent</h3>
+            <p>Reads, replies, and follows up on emails automatically. Never miss an inquiry again.</p>
+          </div>
+          <div class="glass-card reveal reveal-delay-2">
+            <div class="card-emoji">📆</div>
+            <h3>Smart Booking</h3>
+            <p>Lets customers book appointments without back and forth. Your calendar, handled.</p>
+          </div>
+          <div class="glass-card reveal reveal-delay-3">
+            <div class="card-emoji">🤝</div>
+            <h3>Sales Follow-up</h3>
+            <p>Automatically chases leads until you get a yes or no. No more forgotten prospects.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. How it works -->
+    <section id="how-it-works">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>Up and running in <span class="gradient-text">10 minutes</span></h2>
+        </div>
+        <div class="timeline">
+          <div class="timeline-step reveal">
+            <div class="step-dot">1</div>
+            <h3>Tell Yonderly about your business</h3>
+            <p>Answer 7 questions about your services, tone, and pricing.</p>
+          </div>
+          <div class="timeline-step reveal reveal-delay-1">
+            <div class="step-dot">2</div>
+            <h3>Connect your WhatsApp and email</h3>
+            <p>One-click connection, no technical setup required.</p>
+          </div>
+          <div class="timeline-step reveal reveal-delay-2">
+            <div class="step-dot">3</div>
+            <h3>Yonderly handles the rest</h3>
+            <p>Sits in your inbox and replies like a trained employee.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Pricing -->
+    <section id="pricing">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>One price. <span class="gradient-text">No surprises.</span></h2>
+        </div>
+        <div class="pricing-wrapper reveal">
+          <div class="glass-card pricing-card">
+            <div class="price-amount">$49<span>/month</span></div>
+            <ul class="pricing-features">
+              <li>WhatsApp AI Agent</li>
+              <li>Email AI Agent</li>
+              <li>Smart Booking</li>
+              <li>Sales Follow-ups</li>
+              <li>Unlimited messages</li>
+              <li>10-minute setup</li>
+              <li>Cancel anytime</li>
+            </ul>
+            <a href="#waitlist" class="btn btn-primary" style="width:100%">Join the waitlist</a>
+
+            <div class="paypal-section">
+              <p class="paypal-label">Or subscribe now with PayPal</p>
+              <div id="paypal-button-container"></div>
+              <div class="payment-success" id="payment-success">
+                Payment received! Welcome to Yonderly. Check your email for setup instructions.
+              </div>
+            </div>
+
+            <p class="pricing-note">Launching soon · Lock in founding member pricing</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Waitlist -->
+    <section id="waitlist" class="waitlist-section">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>Be first. Get <span class="gradient-text">founding member pricing.</span></h2>
+          <p>Join the waitlist and get 50% off your first 3 months when we launch.</p>
+        </div>
+
+        <form class="waitlist-form reveal" id="waitlist-form">
+          <input type="email" id="waitlist-email" placeholder="you@yourbusiness.com" required>
+          <button type="submit" class="btn btn-primary">Join waitlist</button>
+        </form>
+
+        <div class="waitlist-success" id="waitlist-success">
+          You're on the list! We'll be in touch soon. 🎉
+        </div>
+
+        <div class="reveal" style="max-width:480px;margin:1.5rem auto 0;">
+          <p class="paypal-label">Ready to start? Subscribe with PayPal Business</p>
+          <div id="paypal-waitlist-container"></div>
+        </div>
+
+        <p class="waitlist-social reveal">Join 200+ small businesses already on the waitlist</p>
+      </div>
+    </section>
+
+    <!-- 8. Footer -->
+    <footer>
+      <div class="container">
+        <div class="footer-top">
+          <div>
+            <a href="#" class="logo">
+              <span class="logo-icon">Y</span>
+              <span class="logo-text">Yonderly</span>
+            </a>
+            <p class="footer-tagline">Built for small businesses. Powered by AI.</p>
+          </div>
+          <div class="footer-links">
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Contact</a>
+          </div>
+        </div>
+        <div class="footer-bottom">© 2026 Yonderly. All rights reserved.</div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // ── Particle system ──
+    (function() {
+      const canvas = document.getElementById('particles');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const COUNT = 80;
+      const CONNECT_DIST = 120;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      function init() {
+        particles = [];
+        for (let i = 0; i < COUNT; i++) {
+          const isWhite = Math.random() < 0.35;
+          particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            r: Math.random() * 2 + 0.5,
+            opacity: isWhite ? Math.random() * 0.35 + 0.15 : Math.random() * 0.5 + 0.2,
+            isWhite
+          });
+        }
+      }
+
+      function particleColor(p, alpha) {
+        return p.isWhite
+          ? `rgba(255, 255, 255, ${alpha})`
+          : `rgba(124, 106, 255, ${alpha})`;
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+          if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+          const glowSize = p.isWhite ? p.r * 2.5 : p.r * 3;
+          const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowSize);
+          gradient.addColorStop(0, particleColor(p, p.opacity));
+          gradient.addColorStop(1, particleColor(p, 0));
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, glowSize, 0, Math.PI * 2);
+          ctx.fillStyle = gradient;
+          ctx.fill();
+
+          for (let j = i + 1; j < particles.length; j++) {
+            const q = particles[j];
+            const dx = p.x - q.x;
+            const dy = p.y - q.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < CONNECT_DIST) {
+              const lineAlpha = 0.08 * (1 - dist / CONNECT_DIST);
+              const bothWhite = p.isWhite && q.isWhite;
+              const bothPurple = !p.isWhite && !q.isWhite;
+              let stroke;
+              if (bothWhite) {
+                stroke = `rgba(255, 255, 255, ${lineAlpha * 0.7})`;
+              } else if (bothPurple) {
+                stroke = `rgba(124, 106, 255, ${lineAlpha})`;
+              } else {
+                stroke = `rgba(200, 190, 255, ${lineAlpha * 0.6})`;
+              }
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(q.x, q.y);
+              ctx.strokeStyle = stroke;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      resize();
+      init();
+      draw();
+      window.addEventListener('resize', () => { resize(); init(); });
+    })();
+
+    // ── Navbar scroll ──
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // ── Scroll reveal ──
+    const revealEls = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach(el => revealObserver.observe(el));
+
+    // ── Hero chat animation ──
+    (function() {
+      const chatBody = document.getElementById('chat-body');
+      const typing = document.getElementById('typing');
+
+      const messages = [
+        { type: 'incoming', text: "Hi! Do you have availability for a haircut this Saturday?" },
+        { type: 'outgoing', text: "Hi there! Yes, we have openings at 10am, 1pm, and 3:30pm this Saturday. Haircuts start at $20. Which time works best for you?" },
+        { type: 'incoming', text: "1pm works perfect!" },
+        { type: 'outgoing', text: "You're booked for Saturday at 1pm! We'll send a reminder the day before. See you then! ✂️" }
+      ];
+
+      function addMessage(msg) {
+        return new Promise(resolve => {
+          const el = document.createElement('div');
+          el.className = `chat-msg ${msg.type}`;
+          el.textContent = msg.text;
+          chatBody.insertBefore(el, typing);
+          requestAnimationFrame(() => {
+            el.classList.add('visible');
+            setTimeout(resolve, 400);
+          });
+        });
+      }
+
+      function showTyping() {
+        return new Promise(resolve => {
+          typing.classList.add('active');
+          setTimeout(() => {
+            typing.classList.remove('active');
+            resolve();
+          }, 1200);
+        });
+      }
+
+      async function runChat() {
+        await new Promise(r => setTimeout(r, 1500));
+        for (const msg of messages) {
+          if (msg.type === 'outgoing') await showTyping();
+          await addMessage(msg);
+          await new Promise(r => setTimeout(r, 800));
+        }
+        await new Promise(r => setTimeout(r, 4000));
+        chatBody.querySelectorAll('.chat-msg').forEach(m => m.remove());
+        runChat();
+      }
+
+      runChat();
+    })();
+
+    // ── Waitlist ──
+    const waitlistEmails = [];
+
+    document.getElementById('waitlist-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('waitlist-email').value.trim();
+      if (!email) return;
+
+      waitlistEmails.push({ email, joinedAt: new Date().toISOString() });
+      console.log('Waitlist signups:', waitlistEmails);
+
+      this.style.display = 'none';
+      document.getElementById('waitlist-success').classList.add('show');
+    });
+
+    // ── PayPal Business subscription ──
+    (async function initPayPal() {
+      const containers = [
+        document.getElementById('paypal-button-container'),
+        document.getElementById('paypal-waitlist-container')
+      ];
+
+      function showUnconfigured(msg) {
+        containers.forEach(function(el) {
+          if (el) el.innerHTML = '<div class="paypal-unconfigured">' + msg + '</div>';
+        });
+      }
+
+      try {
+        const res = await fetch('/api/config');
+        const config = await res.json();
+
+        if (!config.paypalClientId || !config.paypalPlanId) {
+          showUnconfigured('PayPal coming soon — join the waitlist above to get notified.');
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://www.paypal.com/sdk/js?client-id=' + config.paypalClientId +
+          '&vault=true&intent=subscription&currency=USD';
+        script.onload = function() {
+          function renderButton(selector) {
+            if (!document.querySelector(selector)) return;
+            paypal.Buttons({
+              style: {
+                layout: 'vertical',
+                color: 'gold',
+                shape: 'rect',
+                label: 'subscribe'
+              },
+              createSubscription: function(data, actions) {
+                return actions.subscription.create({ plan_id: config.paypalPlanId });
+              },
+              onApprove: function(data) {
+                console.log('PayPal subscription approved:', data.subscriptionID);
+                document.getElementById('payment-success').classList.add('show');
+                containers.forEach(function(el) {
+                  if (el) el.style.display = 'none';
+                });
+              },
+              onError: function(err) {
+                console.error('PayPal error:', err);
+              }
+            }).render(selector);
+          }
+          renderButton('#paypal-button-container');
+          renderButton('#paypal-waitlist-container');
+        };
+        script.onerror = function() {
+          showUnconfigured('PayPal could not load. Please try again later.');
+        };
+        document.body.appendChild(script);
+      } catch (err) {
+        showUnconfigured('PayPal coming soon — join the waitlist above.');
+      }
+    })();
+  </script>
+</body>
+</html>
