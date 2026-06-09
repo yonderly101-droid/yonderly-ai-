@@ -511,58 +511,7 @@
       margin-top: 1rem;
     }
 
-    /* Waitlist */
-    .waitlist-section {
-      text-align: center;
-    }
-
-    .waitlist-form {
-      display: flex;
-      gap: 0.75rem;
-      max-width: 480px;
-      margin: 2rem auto 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .waitlist-form input {
-      flex: 1;
-      min-width: 220px;
-      padding: 0.85rem 1.15rem;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(124, 106, 255, 0.25);
-      border-radius: 10px;
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .waitlist-form input:focus {
-      border-color: var(--purple);
-      box-shadow: 0 0 20px rgba(124, 106, 255, 0.2);
-    }
-
-    .waitlist-form input::placeholder { color: #55556a; }
-
-    .waitlist-success {
-      display: none;
-      padding: 1.5rem;
-      background: rgba(52, 211, 153, 0.1);
-      border: 1px solid rgba(52, 211, 153, 0.3);
-      border-radius: 12px;
-      max-width: 480px;
-      margin: 2rem auto 1rem;
-      font-size: 1.05rem;
-    }
-
-    .waitlist-success.show { display: block; }
-
-    .waitlist-social {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
+    /* Waitlist removed */
 
     /* PayPal */
     .paypal-section {
@@ -609,6 +558,15 @@
     }
 
     .payment-success.show { display: block; }
+
+    /* Post-payment card */
+    .post-payment { opacity: 0; transform: translateY(8px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .post-payment.visible { opacity: 1; transform: translateY(0); }
+    .post-payment-card { padding: 2rem; border-radius: 14px; }
+    .post-payment-card .checkmark { font-size: 4rem; color: #10b981; width: 96px; height:96px; margin:0 auto 1rem; display:flex; align-items:center; justify-content:center; border-radius:50%; box-shadow: 0 0 30px rgba(16,185,129,0.15); background: linear-gradient(180deg, rgba(16,185,129,0.12), rgba(16,185,129,0.04)); }
+    .post-payment-card h2 { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+    .post-payment-card .sub { color: var(--text-muted); margin-bottom: 1rem; }
+    .large-cta { display:inline-block; padding:1rem 1.6rem; border-radius:12px; font-size:1.05rem; font-weight:700; text-decoration:none; margin-top:0.5rem; background: linear-gradient(135deg,var(--purple),#6b4fd4); color:#fff; box-shadow: 0 0 40px rgba(124,106,255,0.2); }
 
     /* Footer */
     footer {
@@ -681,8 +639,6 @@
     @media (max-width: 540px) {
       .hero { padding-top: 7rem; }
       .hero-buttons { flex-direction: column; align-items: center; }
-      .waitlist-form { flex-direction: column; }
-      .waitlist-form input { width: 100%; }
     }
   </style>
 </head>
@@ -702,7 +658,8 @@
         <div class="nav-links">
           <a href="#how-it-works">How it works</a>
           <a href="#pricing">Pricing</a>
-          <a href="https://www.paypal.com/ncp/payment/AFV5VQLLCMAHN" target="_blank" rel="noopener" class="btn btn-primary">Ready to go</a>
+          <a id="dashboard-btn" href="/dashboard" class="btn btn-primary" style="display:none">My Dashboard</a>
+          <a href="#pricing" class="btn btn-primary">Get Started</a>
         </div>
       </div>
     </nav>
@@ -713,10 +670,10 @@
         <h1 class="reveal"><span class="gradient-text">Your business's first AI employee</span></h1>
         <p class="hero-sub reveal reveal-delay-1">Yonderly handles your WhatsApp messages, replies to emails, books appointments, and follows up on leads — 24/7, at $49/month flat.</p>
         <div class="hero-buttons reveal reveal-delay-2">
-          <a href="https://www.paypal.com/ncp/payment/AFV5VQLLCMAHN" target="_blank" rel="noopener" class="btn btn-primary">Pay with PayPal</a>
+          <a href="#pricing" class="btn btn-primary">Get Started</a>
           <a href="#how-it-works" class="btn btn-ghost">See how it works</a>
         </div>
-        <p class="hero-proof reveal reveal-delay-3">🔒 No credit card required · Setup in 10 minutes · Cancel anytime</p>
+        <p class="hero-proof reveal reveal-delay-3">🔒 Setup in 10 minutes · No long-term contracts · Cancel anytime</p>
 
         <div class="chat-mockup reveal">
           <div class="chat-header">
@@ -836,7 +793,7 @@
               <li>10-minute setup</li>
               <li>Cancel anytime</li>
             </ul>
-            <a href="https://www.paypal.com/ncp/payment/AFV5VQLLCMAHN" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%">Pay with PayPal</a>
+            <a href="https://www.paypal.com/ncp/payment/AFV5VQLLCMAHN" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%">Get Started with PayPal</a>
 
             <div class="paypal-section">
               <p class="paypal-label">Or subscribe now with PayPal</p>
@@ -846,44 +803,13 @@
               </div>
             </div>
 
-            <p class="pricing-note">Launching soon · Lock in founding member pricing</p>
+            <p class="pricing-note">Start today · Cancel anytime</p>
           </div>
         </div>
       </div>
     </section>
-
-    <!-- 7. Waitlist -->
-    <section id="waitlist" class="waitlist-section">
-      <div class="container">
-        <div class="section-header reveal">
-          <h2>Be first. Get <span class="gradient-text">founding member pricing.</span></h2>
-          <p>Join the waitlist and get 50% off your first 3 months when we launch.</p>
-        </div>
-
-        <form class="waitlist-form reveal" id="waitlist-form">
-          <input type="email" id="waitlist-email" placeholder="you@yourbusiness.com" required>
-          <button type="submit" class="btn btn-primary">Join waitlist</button>
-        </form>
-
-        <div class="waitlist-success" id="waitlist-success">
-          You're on the list! We'll be in touch soon. 🎉
-        </div>
-
-        <div class="reveal" style="max-width:480px;margin:1.5rem auto 0;">
-          <p class="paypal-label">Ready to start? Subscribe with PayPal Business</p>
-          <!-- Hosted PayPal button -->
-          <script src="https://www.paypal.com/sdk/js?client-id=BAAURa8OVpzkLkcxSq8V1YuIOaJ41m3Tlu_DTjaPTzs5SXWe2pzS8naMdP4gbMHvL-x5JxkahL8X7gCmhQ&components=hosted-buttons&disable-funding=venmo&currency=USD"></script>
-          <div id="paypal-container-AFV5VQLLCMAHN"></div>
-          <script>
-            paypal.HostedButtons({
-              hostedButtonId: "AFV5VQLLCMAHN",
-            }).render("#paypal-container-AFV5VQLLCMAHN");
-          </script>
-        </div>
-
-        <p class="waitlist-social reveal">Join 200+ small businesses already on the waitlist</p>
-      </div>
-    </section>
+    
+    <!-- Post-payment and Footer follow -->
 
     <!-- 8. Footer -->
     <footer>
@@ -1068,27 +994,64 @@
       runChat();
     })();
 
-    // ── Waitlist ──
-    const waitlistEmails = [];
-
-    document.getElementById('waitlist-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const email = document.getElementById('waitlist-email').value.trim();
-      if (!email) return;
-
-      waitlistEmails.push({ email, joinedAt: new Date().toISOString() });
-      console.log('Waitlist signups:', waitlistEmails);
-
-      this.style.display = 'none';
-      document.getElementById('waitlist-success').classList.add('show');
-    });
-
     // ── PayPal Business subscription ──
+    (function setupDashboardButton() {
+      // Show dashboard link if user previously paid
+      try {
+        const u = localStorage.getItem('yonderly_user');
+        if (u) {
+          const btn = document.getElementById('dashboard-btn');
+          if (btn) btn.style.display = 'inline-flex';
+        }
+      } catch (e) {}
+    })();
+
+    async function handlePaymentApproved(subscriptionID) {
+      try {
+        // fetch subscriber info from backend
+        const res = await fetch('/api/paypal/subscription/' + encodeURIComponent(subscriptionID));
+        const data = await res.json();
+        const email = data.email || (data.raw && data.raw.subscriber && data.raw.subscriber.email_address) || '';
+
+        const user = { email: email, subscription_id: subscriptionID };
+        try { localStorage.setItem('yonderly_user', JSON.stringify(user)); } catch (e) {}
+
+        // generate simple token and register it with backend
+        const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        await fetch('/api/tokens/add', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token, email: email, subscription_id: subscriptionID })
+        });
+
+        // show post-payment UI with link to onboarding including token
+        showPostPaymentUI(token);
+
+        // reveal dashboard button
+        const btn = document.getElementById('dashboard-btn');
+        if (btn) btn.style.display = 'inline-flex';
+      } catch (err) {
+        console.error('Failed to complete post-payment flow', err);
+      }
+    }
+
+    function showPostPaymentUI(token) {
+      const container = document.createElement('div');
+      container.className = 'post-payment reveal visible';
+      container.innerHTML = `
+        <div class="post-payment-card glass-card" style="max-width:720px;margin:2rem auto;text-align:center;">
+          <div class="checkmark">✓</div>
+          <h2>You're in. Welcome to Yonderly.</h2>
+          <p class="sub">Your AI employee is ready to set up.</p>
+          <a class="btn-primary large-cta" href="/onboarding?token=${encodeURIComponent(token)}">Set Up Your AI Employee →</a>
+          <p style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">Bookmark this page — you can return anytime to access your dashboard</p>
+        </div>
+      `;
+      const pricingSection = document.getElementById('pricing');
+      if (pricingSection) pricingSection.parentNode.insertBefore(container, pricingSection.nextSibling);
+    }
+
     (async function initPayPal() {
-      const containers = [
-        document.getElementById('paypal-button-container'),
-        document.getElementById('paypal-waitlist-container')
-      ];
+      const containers = [ document.getElementById('paypal-button-container') ];
 
       function showUnconfigured(msg) {
         containers.forEach(function(el) {
@@ -1101,47 +1064,37 @@
         const config = await res.json();
 
         if (!config.paypalClientId || !config.paypalPlanId) {
-          showUnconfigured('PayPal coming soon — join the waitlist above to get notified.');
+          showUnconfigured('PayPal coming soon — please check back later.');
           return;
         }
 
         const script = document.createElement('script');
-        script.src = 'https://www.paypal.com/sdk/js?client-id=' + config.paypalClientId +
-          '&vault=true&intent=subscription&currency=USD';
+        script.src = 'https://www.paypal.com/sdk/js?client-id=' + config.paypalClientId + '&vault=true&intent=subscription&currency=USD';
         script.onload = function() {
           function renderButton(selector) {
             if (!document.querySelector(selector)) return;
             paypal.Buttons({
-              style: {
-                layout: 'vertical',
-                color: 'gold',
-                shape: 'rect',
-                label: 'subscribe'
-              },
+              style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'subscribe' },
               createSubscription: function(data, actions) {
                 return actions.subscription.create({ plan_id: config.paypalPlanId });
               },
               onApprove: function(data) {
                 console.log('PayPal subscription approved:', data.subscriptionID);
-                document.getElementById('payment-success').classList.add('show');
-                containers.forEach(function(el) {
-                  if (el) el.style.display = 'none';
-                });
+                // hide default success and show our post-payment flow
+                const ps = document.getElementById('payment-success');
+                if (ps) ps.classList.remove('show');
+                handlePaymentApproved(data.subscriptionID);
+                containers.forEach(function(el) { if (el) el.style.display = 'none'; });
               },
-              onError: function(err) {
-                console.error('PayPal error:', err);
-              }
+              onError: function(err) { console.error('PayPal error:', err); }
             }).render(selector);
           }
           renderButton('#paypal-button-container');
-          renderButton('#paypal-waitlist-container');
         };
-        script.onerror = function() {
-          showUnconfigured('PayPal could not load. Please try again later.');
-        };
+        script.onerror = function() { showUnconfigured('PayPal could not load. Please try again later.'); };
         document.body.appendChild(script);
       } catch (err) {
-        showUnconfigured('PayPal coming soon — join the waitlist above.');
+        showUnconfigured('PayPal coming soon — please check back later.');
       }
     })();
   </script>

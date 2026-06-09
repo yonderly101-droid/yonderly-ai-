@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 import requests
 
 # rate limiting
@@ -50,6 +50,7 @@ PAYPAL_BASE = "https://api-m.sandbox.paypal.com" if PAYPAL_MODE == "sandbox" els
 BASE_DIR = Path(__file__).resolve().parent
 PROFILE_PATH = BASE_DIR / "business_profile.json"
 LOG_PATH = BASE_DIR / "email_log.json"
+TOKENS_PATH = BASE_DIR / "valid_tokens.json"
 
 
 def load_profile():
@@ -58,6 +59,25 @@ def load_profile():
         with open(PROFILE_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     return None
+
+
+def load_valid_tokens():
+    if TOKENS_PATH.exists():
+        with open(TOKENS_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def save_valid_tokens(tokens):
+    with open(TOKENS_PATH, "w", encoding="utf-8") as f:
+        json.dump(tokens, f, indent=2, ensure_ascii=False)
+
+
+def is_token_valid(token):
+    if not token:
+        return False
+    tokens = load_valid_tokens()
+    return any(t.get("token") == token for t in tokens)
 
 
 def load_email_log():
@@ -154,6 +174,19 @@ def index():
     return render_template("index.html", profile=profile)
 
 
+@app.route('/onboarding')
+def onboarding():
+    # Access gated: check token query param or session
+    token = request.args.get('token')
+    if token and is_token_valid(token):
+        session['access_token'] = token
+    elif not session.get('access_token') or not is_token_valid(session.get('access_token')):
+        return redirect(url_for('index', msg="Please complete payment to access Yonderly"))
+
+    profile = load_profile()
+    return render_template('index.html', profile=profile)
+
+
 @app.route("/submit", methods=["POST"])
 def submit():
     """Handle form submission, save to business_profile.json, redirect to success."""
@@ -218,7 +251,13 @@ def success():
 
 @app.route("/dashboard")
 def dashboard():
-    """Show all emails Yonderly has replied to."""
+    """Show all emails Yonderly has replied to. Access gated by payment token/session."""
+    # Access control: allow if valid token provided as query param or in session
+    token = request.args.get('token')
+    if token and is_token_valid(token):
+        session['access_token'] = token
+    elif not session.get('access_token') or not is_token_valid(session.get('access_token')):
+        return redirect(url_for('index', msg="Please complete payment to access Yonderly"))
     profile = load_profile()
     raw_log = load_email_log()
     stats = compute_email_stats(raw_log)
@@ -300,6 +339,44 @@ def api_approve_reply():
     save_pending_replies(pending)
 
     return jsonify({'success': True})
+
+
+@app.route('/api/tokens/add', methods=['POST'])
+def api_add_token():
+    data = request.get_json() or {}
+    token = data.get('token')
+    email = data.get('email')
+    subscription_id = data.get('subscription_id')
+    if not token:
+        return jsonify({'success': False, 'error': 'missing token'}), 400
+
+    tokens = load_valid_tokens()
+    tokens.append({
+        'token': token,
+        'email': email,
+        'subscription_id': subscription_id,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    })
+    save_valid_tokens(tokens)
+    return jsonify({'success': True})
+
+
+@app.route('/api/paypal/subscription/<sub_id>', methods=['GET'])
+def api_paypal_subscription(sub_id):
+    try:
+        token = get_paypal_token()
+        res = requests.get(
+            f"{PAYPAL_BASE}/v1/billing/subscriptions/{sub_id}",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+            timeout=10,
+        )
+        res.raise_for_status()
+        data = res.json()
+        subscriber = data.get('subscriber', {})
+        email = subscriber.get('email_address') or subscriber.get('email')
+        return jsonify({'subscription_id': sub_id, 'email': email, 'raw': data})
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
 
 
 @app.route('/api/pending_replies/discard', methods=['POST'])
