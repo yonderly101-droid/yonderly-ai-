@@ -30,6 +30,8 @@ register_whatsapp_routes(app)
 # Setup limiter (memory storage for simplicity; switch to Redis in production)
 limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
 limiter.init_app(app)
+# decorator to apply to login/auth routes: max 5 attempts per 15 minutes
+login_rate = limiter.limit("5 per 15 minutes")
 
 # PayPal configuration (use environment variables; do NOT store secrets in repo)
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
