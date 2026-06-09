@@ -1,7 +1,4 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
-    { "source": "/whatsapp", "destination": "/api/config" }
-  ]
+  "trailingSlash": false
 }
