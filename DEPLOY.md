@@ -63,6 +63,32 @@ Every `git push` will now auto-update yonderly.online.
 
 ---
 
+## Supabase — what to add and how to use it
+
+This project uses Supabase as the main backend for auth, Postgres, storage, and server functions.
+
+1. Create a Supabase project at https://app.supabase.com
+2. Note the **Project URL** (e.g. https://xyz.supabase.co) and **API keys**:
+   - `anon` (client-side public key)
+   - `service_role` (server-side privileged key — keep secret)
+
+3. In Vercel dashboard → Project → Settings → Environment Variables add:
+
+| Name | Value | Notes |
+|------|-------|-------|
+| `SUPABASE_URL` | your project URL | e.g. https://xyz.supabase.co |
+| `SUPABASE_ANON_KEY` | anon key | safe for client-side use |
+| `SUPABASE_SERVICE_KEY` | service_role key | **server-only** (Edge functions or serverless)
+
+4. Deploy an example Edge Function (see `api/supabase_example.js`) — it uses the REST API and the anon key to query a `messages` table.
+
+Notes:
+- Edge Functions are stateless and short-lived — use them for webhooks, light-weight API logic, and API composition.
+- For background jobs or long-running workers use Railway / Docker hosts or a job queue (not Edge Functions).
+
+
+---
+
 ## Part 3 — Connect yonderly.online
 
 ### 3a. Add domain in Vercel

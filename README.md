@@ -356,3 +356,10 @@ Run the onboarding form first (`python app.py`), fill it out, and submit.
 Check the terminal output for error messages — they usually explain what went wrong. The Troubleshooting section above covers the most common issues.
 
 Built with Python, Flask, Gmail API, and Claude AI.
+
+---
+
+## Deploying (Vercel + Supabase)
+
+This project uses Vercel for the frontend and Supabase for auth, Postgres, and storage. See [DEPLOY.md](DEPLOY.md) for full instructions on connecting your GitHub repo, adding environment variables, and deploying the example Edge Function in `api/`.
+
