@@ -287,6 +287,9 @@ def payment_success():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
     print(f"\n  Yonderly is running at http://127.0.0.1:{port}")
     print(f"  Dashboard: http://127.0.0.1:{port}/dashboard\n")
-    app.run(debug=True, host="127.0.0.1", port=port)
+    if debug_mode:
+        print("  WARNING: Running in debug mode. Do not enable in production.")
+    app.run(debug=debug_mode, host="127.0.0.1", port=port)
