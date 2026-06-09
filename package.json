@@ -1,0 +1,25 @@
+{
+  "name": "yon-ai-agent",
+  "version": "1.0.0",
+  "description": "Yonderly reads your business Gmail inbox and automatically replies to customer emails — in your voice, with your pricing, and your rules. You also get a dashboard to see every email Yonderly has handled.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yonderly101-droid/yonderly-ai-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/yonderly101-droid/yonderly-ai-/issues"
+  },
+  "homepage": "https://github.com/yonderly101-droid/yonderly-ai-#readme",
+  "dependencies": {
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.1"
+  }
+}
