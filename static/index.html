@@ -554,6 +554,209 @@
 
     .payment-success.show { display: block; }
 
+    .btn-demo {
+      background: rgba(124, 106, 255, 0.12);
+      color: var(--purple-light);
+      border: 1px solid rgba(124, 106, 255, 0.45);
+      box-shadow: 0 0 24px rgba(124, 106, 255, 0.15);
+    }
+
+    .btn-demo:hover {
+      background: rgba(124, 106, 255, 0.2);
+      border-color: var(--purple);
+      box-shadow: 0 0 32px rgba(124, 106, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    /* Demo modal */
+    .demo-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      z-index: 2000;
+    }
+
+    .demo-overlay[hidden] { display: none; }
+
+    .demo-modal {
+      background: var(--bg-card, #1a1a24);
+      border: 1px solid rgba(124, 106, 255, 0.35);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 60px rgba(124, 106, 255, 0.15);
+    }
+
+    .demo-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid rgba(124, 106, 255, 0.15);
+    }
+
+    .demo-modal-header h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .demo-modal-header p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .demo-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .demo-body {
+      padding: 1.25rem 1.5rem 1.5rem;
+      overflow-y: auto;
+    }
+
+    .demo-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      background: rgba(124, 106, 255, 0.15);
+      color: var(--purple-light);
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+
+    .demo-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .demo-chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(124, 106, 255, 0.25);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .demo-chip:hover {
+      border-color: var(--purple);
+      color: var(--text);
+    }
+
+    .demo-input {
+      width: 100%;
+      min-height: 90px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(124, 106, 255, 0.25);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 0.85rem 1rem;
+      resize: vertical;
+      margin-bottom: 1rem;
+    }
+
+    .demo-input:focus {
+      outline: none;
+      border-color: var(--purple);
+      box-shadow: 0 0 20px rgba(124, 106, 255, 0.2);
+    }
+
+    .demo-result {
+      margin-top: 1.25rem;
+      display: none;
+    }
+
+    .demo-result.show { display: block; }
+
+    .demo-msg {
+      margin-bottom: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .demo-msg-customer {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .demo-msg-yonderly {
+      background: rgba(124, 106, 255, 0.1);
+      border: 1px solid rgba(124, 106, 255, 0.3);
+    }
+
+    .demo-msg-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .demo-loading {
+      display: none;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--purple-light);
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .demo-loading.show { display: flex; }
+
+    .demo-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(124, 106, 255, 0.25);
+      border-top-color: var(--purple);
+      border-radius: 50%;
+      animation: demo-spin 0.8s linear infinite;
+    }
+
+    @keyframes demo-spin { to { transform: rotate(360deg); } }
+
+    .demo-error {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      border-radius: 10px;
+      color: #f87171;
+      font-size: 0.85rem;
+    }
+
+    .demo-error.show { display: block; }
+
+    .nav-links .btn-demo {
+      width: auto;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.88rem;
+    }
+
     /* Footer */
     footer {
       padding: 3rem 0 2rem;
@@ -644,6 +847,7 @@
         <div class="nav-links">
           <a href="#how-it-works">How it works</a>
           <a href="#pricing">Pricing</a>
+          <button type="button" class="btn btn-demo open-demo">Try Demo</button>
           <a href="#pricing" class="btn btn-primary">Get Started</a>
         </div>
       </div>
@@ -656,6 +860,7 @@
         <p class="hero-sub reveal reveal-delay-1">Yonderly handles your WhatsApp messages, replies to emails, books appointments, and follows up on leads — 24/7, at $49/month flat.</p>
         <div class="hero-buttons reveal reveal-delay-2">
           <a href="#pricing" class="btn btn-primary">Get Started</a>
+          <button type="button" class="btn btn-demo open-demo">Try Demo</button>
           <a href="#how-it-works" class="btn btn-ghost">See how it works</a>
         </div>
         <p class="hero-proof reveal reveal-delay-3">🔒 Setup in 10 minutes · No long-term contracts · Cancel anytime</p>
@@ -813,6 +1018,49 @@
       </div>
     </footer>
 
+  </div>
+
+  <!-- Live AI demo -->
+  <div class="demo-overlay" id="demo-overlay" hidden>
+    <div class="demo-modal" role="dialog" aria-labelledby="demo-title">
+      <div class="demo-modal-header">
+        <div>
+          <h2 id="demo-title">Try Yonderly live</h2>
+          <p>Send a customer message — see how Yonderly replies for Test Salon.</p>
+        </div>
+        <button type="button" class="demo-close" id="demo-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="demo-body">
+        <span class="demo-badge">Demo business: Test Salon · Friendly tone</span>
+
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.65rem;">Try an example:</p>
+        <div class="demo-examples">
+          <button type="button" class="demo-chip" data-msg="Hi! Do you have availability for a haircut this Saturday?">Saturday haircut?</button>
+          <button type="button" class="demo-chip" data-msg="How much do braids cost and how long do they take?">Braid pricing</button>
+          <button type="button" class="demo-chip" data-msg="Do you take walk-ins or do I need to book ahead?">Walk-ins?</button>
+        </div>
+
+        <textarea class="demo-input" id="demo-input" placeholder="Type a customer message… e.g. Hi, what are your prices for a trim?"></textarea>
+        <button type="button" class="btn btn-primary" id="demo-send" style="width:100%">Send to Yonderly</button>
+
+        <div class="demo-loading" id="demo-loading">
+          <div class="demo-spinner"></div>
+          <span>Yonderly is writing a reply…</span>
+        </div>
+        <div class="demo-error" id="demo-error"></div>
+
+        <div class="demo-result" id="demo-result">
+          <div class="demo-msg demo-msg-customer">
+            <div class="demo-msg-label">Customer</div>
+            <div id="demo-customer-text"></div>
+          </div>
+          <div class="demo-msg demo-msg-yonderly">
+            <div class="demo-msg-label">Yonderly's reply</div>
+            <div id="demo-reply-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1024,6 +1272,93 @@
       } catch (err) {
         showUnconfigured('PayPal checkout is being set up. Please check back shortly.');
       }
+    })();
+
+    // ── Live AI demo ──
+    (function() {
+      const overlay = document.getElementById('demo-overlay');
+      const closeBtn = document.getElementById('demo-close');
+      const input = document.getElementById('demo-input');
+      const sendBtn = document.getElementById('demo-send');
+      const loading = document.getElementById('demo-loading');
+      const errorEl = document.getElementById('demo-error');
+      const result = document.getElementById('demo-result');
+      const customerText = document.getElementById('demo-customer-text');
+      const replyText = document.getElementById('demo-reply-text');
+
+      function openDemo() {
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+        input.focus();
+      }
+
+      function closeDemo() {
+        overlay.hidden = true;
+        document.body.style.overflow = '';
+      }
+
+      document.querySelectorAll('.open-demo').forEach(function(btn) {
+        btn.addEventListener('click', openDemo);
+      });
+
+      closeBtn.addEventListener('click', closeDemo);
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeDemo();
+      });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !overlay.hidden) closeDemo();
+      });
+
+      document.querySelectorAll('.demo-chip').forEach(function(chip) {
+        chip.addEventListener('click', function() {
+          input.value = chip.dataset.msg;
+          runDemo();
+        });
+      });
+
+      async function runDemo() {
+        const message = input.value.trim();
+        if (!message) {
+          input.focus();
+          return;
+        }
+
+        errorEl.classList.remove('show');
+        result.classList.remove('show');
+        loading.classList.add('show');
+        sendBtn.disabled = true;
+
+        try {
+          const res = await fetch('/api/agent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message }),
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || 'Demo failed');
+          }
+
+          customerText.textContent = message;
+          replyText.textContent = data.reply;
+          result.classList.add('show');
+        } catch (err) {
+          errorEl.textContent = err.message || 'Something went wrong. Please try again.';
+          errorEl.classList.add('show');
+        } finally {
+          loading.classList.remove('show');
+          sendBtn.disabled = false;
+        }
+      }
+
+      sendBtn.addEventListener('click', runDemo);
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          runDemo();
+        }
+      });
     })();
   </script>
 </body>

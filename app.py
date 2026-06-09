@@ -26,7 +26,10 @@ from email_agent import (
     get_gmail_service,
     send_reply,
     log_conversation,
+    build_system_prompt,
+    CLAUDE_MODEL,
 )
+import anthropic
 
 load_dotenv()
 
@@ -303,6 +306,51 @@ def api_config():
         'paypalPlanId': os.getenv('PAYPAL_PLAN_ID', ''),
         'paypalMode': PAYPAL_MODE,
     })
+
+
+@app.route('/api/demo', methods=['POST'])
+@app.route('/api/agent', methods=['POST'])
+@limiter.limit("10 per minute")
+def api_demo():
+    """Live demo: reply to a sample customer message using the business profile."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"error": "Demo unavailable — AI key not configured."}), 503
+
+    data = request.get_json() or {}
+    message = (data.get("message") or "").strip()
+    if not message or len(message) > 1000:
+        return jsonify({"error": "Please send a customer message (max 1000 characters)."}), 400
+
+    profile = load_profile() or {
+        "business_name": "Test Salon",
+        "offerings": "Haircuts, braids, and styling",
+        "prices": "Haircuts from $20, Braids from $50",
+        "common_questions": "Do you take walk-ins? What are your hours?",
+        "tone": "friendly",
+        "contact_email": "hello@testsalon.com",
+        "restrictions": "Never offer discounts. Do not promise same-day braids.",
+    }
+
+    user_message = (
+        "Reply to this customer message. Write only the reply body — no subject line.\n\n"
+        f"Subject: Customer inquiry\n\n{message}"
+    )
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=512,
+            system=build_system_prompt(profile),
+            messages=[{"role": "user", "content": user_message}],
+        )
+        reply = response.content[0].text.strip()
+        return jsonify({"reply": reply, "business_name": profile.get("business_name", "Demo")})
+    except anthropic.APIError as exc:
+        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        return jsonify({"error": "Demo failed. Please try again."}), 500
 
 
 @app.route('/api/pending_replies/approve', methods=['POST'])
