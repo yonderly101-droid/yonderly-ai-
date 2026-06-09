@@ -1,4 +1,21 @@
-# Secret files — never commit these
+venv/
+venv/*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+.env
+credentials.json
+token.json
+*.sqlite3
+.DS_Store
+.vscode/
+.idea/
+node_modules/
+dist/
+build/
+*.log# Secret files — never commit these
 .env
 credentials.json
 token.json
