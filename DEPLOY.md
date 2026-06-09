@@ -79,6 +79,14 @@ This project uses Supabase as the main backend for auth, Postgres, storage, and 
 | `SUPABASE_URL` | your project URL | e.g. https://xyz.supabase.co |
 | `SUPABASE_ANON_KEY` | anon key | safe for client-side use |
 | `SUPABASE_SERVICE_KEY` | service_role key | **server-only** (Edge functions or serverless)
+If you are deploying a frontend that relies on Supabase client-side (Next.js, Vite, etc.) also add the following public env vars (prefixed `NEXT_PUBLIC_` so Vercel exposes them to the browser):
+
+| Name | Value | Notes |
+|------|-------|-------|
+| `NEXT_PUBLIC_SUPABASE_URL` | your project URL | same as `SUPABASE_URL` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable/anon key | safe for client-side use |
+
+After adding env vars, redeploy the project (Vercel will rebuild and pick up the new values).
 
 4. Deploy an example Edge Function (see `api/supabase_example.js`) — it uses the REST API and the anon key to query a `messages` table.
 
