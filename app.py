@@ -9,7 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+import requests
 
 from whatsapp_agent import register_whatsapp_routes
 
@@ -18,6 +19,13 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "yonderly-dev-secret-change-me")
 register_whatsapp_routes(app)
+
+# PayPal configuration (use environment variables; do NOT store secrets in repo)
+PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
+PAYPAL_SECRET = os.getenv("PAYPAL_SECRET")
+PAYPAL_MODE = os.getenv("PAYPAL_MODE", "sandbox")
+
+PAYPAL_BASE = "https://api-m.sandbox.paypal.com" if PAYPAL_MODE == "sandbox" else "https://api-m.paypal.com"
 
 BASE_DIR = Path(__file__).resolve().parent
 PROFILE_PATH = BASE_DIR / "business_profile.json"
@@ -187,6 +195,57 @@ def dashboard():
         emails=emails,
         stats=stats,
     )
+
+
+@app.route('/pricing')
+def pricing():
+    """Render a simple pricing page with a PayPal button."""
+    return render_template('pricing.html', paypal_client_id=PAYPAL_CLIENT_ID)
+
+
+def get_paypal_token():
+    """Obtain an access token from PayPal using client credentials."""
+    if not PAYPAL_CLIENT_ID or not PAYPAL_SECRET:
+        raise RuntimeError("PayPal credentials are not configured in environment variables")
+
+    res = requests.post(
+        f"{PAYPAL_BASE}/v1/oauth2/token",
+        headers={"Accept": "application/json"},
+        data={"grant_type": "client_credentials"},
+        auth=(PAYPAL_CLIENT_ID, PAYPAL_SECRET),
+        timeout=10,
+    )
+    res.raise_for_status()
+    return res.json().get('access_token')
+
+
+@app.route('/payment/success', methods=['POST'])
+def payment_success():
+    order_id = request.json.get('orderID')
+    if not order_id:
+        return jsonify({"success": False, "error": "missing orderID"}), 400
+
+    try:
+        token = get_paypal_token()
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+    # Verify the order with PayPal
+    res = requests.get(
+        f"{PAYPAL_BASE}/v2/checkout/orders/{order_id}",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=10,
+    )
+    if res.status_code != 200:
+        return jsonify({"success": False, "error": "verification failed"}), 400
+
+    order = res.json()
+
+    if order.get('status') == 'COMPLETED':
+        # TODO: mark user as paid in your DB / JSON file
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False}), 400
 
 
 if __name__ == "__main__":
