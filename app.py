@@ -295,6 +295,16 @@ def api_get_pending_replies():
     return jsonify(pending)
 
 
+@app.route('/api/config')
+def api_config():
+    # Expose minimal PayPal config for the frontend
+    return jsonify({
+        'paypalClientId': PAYPAL_CLIENT_ID or '',
+        'paypalPlanId': os.getenv('PAYPAL_PLAN_ID', ''),
+        'paypalMode': PAYPAL_MODE,
+    })
+
+
 @app.route('/api/pending_replies/approve', methods=['POST'])
 def api_approve_reply():
     data = request.get_json() or {}
