@@ -511,13 +511,9 @@
       margin-top: 1rem;
     }
 
-    /* Waitlist removed */
-
     /* PayPal */
     .paypal-section {
       margin-top: 1.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid rgba(124, 106, 255, 0.15);
     }
 
     .paypal-label {
@@ -529,8 +525,7 @@
       text-align: center;
     }
 
-    #paypal-button-container,
-    #paypal-waitlist-container {
+    #paypal-button-container {
       min-height: 45px;
       display: flex;
       justify-content: center;
@@ -558,15 +553,6 @@
     }
 
     .payment-success.show { display: block; }
-
-    /* Post-payment card */
-    .post-payment { opacity: 0; transform: translateY(8px); transition: opacity 0.5s ease, transform 0.5s ease; }
-    .post-payment.visible { opacity: 1; transform: translateY(0); }
-    .post-payment-card { padding: 2rem; border-radius: 14px; }
-    .post-payment-card .checkmark { font-size: 4rem; color: #10b981; width: 96px; height:96px; margin:0 auto 1rem; display:flex; align-items:center; justify-content:center; border-radius:50%; box-shadow: 0 0 30px rgba(16,185,129,0.15); background: linear-gradient(180deg, rgba(16,185,129,0.12), rgba(16,185,129,0.04)); }
-    .post-payment-card h2 { margin-top: 0.25rem; margin-bottom: 0.25rem; }
-    .post-payment-card .sub { color: var(--text-muted); margin-bottom: 1rem; }
-    .large-cta { display:inline-block; padding:1rem 1.6rem; border-radius:12px; font-size:1.05rem; font-weight:700; text-decoration:none; margin-top:0.5rem; background: linear-gradient(135deg,var(--purple),#6b4fd4); color:#fff; box-shadow: 0 0 40px rgba(124,106,255,0.2); }
 
     /* Footer */
     footer {
@@ -658,7 +644,6 @@
         <div class="nav-links">
           <a href="#how-it-works">How it works</a>
           <a href="#pricing">Pricing</a>
-          <a id="dashboard-btn" href="/dashboard" class="btn btn-primary" style="display:none">My Dashboard</a>
           <a href="#pricing" class="btn btn-primary">Get Started</a>
         </div>
       </div>
@@ -793,10 +778,8 @@
               <li>10-minute setup</li>
               <li>Cancel anytime</li>
             </ul>
-            <a href="https://www.paypal.com/ncp/payment/AFV5VQLLCMAHN" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%">Get Started with PayPal</a>
-
             <div class="paypal-section">
-              <p class="paypal-label">Or subscribe now with PayPal</p>
+              <p class="paypal-label">Get Started with PayPal</p>
               <div id="paypal-button-container"></div>
               <div class="payment-success" id="payment-success">
                 Payment received! Welcome to Yonderly. Check your email for setup instructions.
@@ -808,10 +791,8 @@
         </div>
       </div>
     </section>
-    
-    <!-- Post-payment and Footer follow -->
 
-    <!-- 8. Footer -->
+    <!-- 7. Footer -->
     <footer>
       <div class="container">
         <div class="footer-top">
@@ -995,68 +976,11 @@
     })();
 
     // ── PayPal Business subscription ──
-    (function setupDashboardButton() {
-      // Show dashboard link if user previously paid
-      try {
-        const u = localStorage.getItem('yonderly_user');
-        if (u) {
-          const btn = document.getElementById('dashboard-btn');
-          if (btn) btn.style.display = 'inline-flex';
-        }
-      } catch (e) {}
-    })();
-
-    async function handlePaymentApproved(subscriptionID) {
-      try {
-        // fetch subscriber info from backend
-        const res = await fetch('/api/paypal/subscription/' + encodeURIComponent(subscriptionID));
-        const data = await res.json();
-        const email = data.email || (data.raw && data.raw.subscriber && data.raw.subscriber.email_address) || '';
-
-        const user = { email: email, subscription_id: subscriptionID };
-        try { localStorage.setItem('yonderly_user', JSON.stringify(user)); } catch (e) {}
-
-        // generate simple token and register it with backend
-        const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-        await fetch('/api/tokens/add', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: token, email: email, subscription_id: subscriptionID })
-        });
-
-        // show post-payment UI with link to onboarding including token
-        showPostPaymentUI(token);
-
-        // reveal dashboard button
-        const btn = document.getElementById('dashboard-btn');
-        if (btn) btn.style.display = 'inline-flex';
-      } catch (err) {
-        console.error('Failed to complete post-payment flow', err);
-      }
-    }
-
-    function showPostPaymentUI(token) {
-      const container = document.createElement('div');
-      container.className = 'post-payment reveal visible';
-      container.innerHTML = `
-        <div class="post-payment-card glass-card" style="max-width:720px;margin:2rem auto;text-align:center;">
-          <div class="checkmark">✓</div>
-          <h2>You're in. Welcome to Yonderly.</h2>
-          <p class="sub">Your AI employee is ready to set up.</p>
-          <a class="btn-primary large-cta" href="/onboarding?token=${encodeURIComponent(token)}">Set Up Your AI Employee →</a>
-          <p style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">Bookmark this page — you can return anytime to access your dashboard</p>
-        </div>
-      `;
-      const pricingSection = document.getElementById('pricing');
-      if (pricingSection) pricingSection.parentNode.insertBefore(container, pricingSection.nextSibling);
-    }
-
     (async function initPayPal() {
-      const containers = [ document.getElementById('paypal-button-container') ];
+      const container = document.getElementById('paypal-button-container');
 
       function showUnconfigured(msg) {
-        containers.forEach(function(el) {
-          if (el) el.innerHTML = '<div class="paypal-unconfigured">' + msg + '</div>';
-        });
+        if (container) container.innerHTML = '<div class="paypal-unconfigured">' + msg + '</div>';
       }
 
       try {
@@ -1064,37 +988,41 @@
         const config = await res.json();
 
         if (!config.paypalClientId || !config.paypalPlanId) {
-          showUnconfigured('PayPal coming soon — please check back later.');
+          showUnconfigured('PayPal checkout is being set up. Please check back shortly.');
           return;
         }
 
         const script = document.createElement('script');
-        script.src = 'https://www.paypal.com/sdk/js?client-id=' + config.paypalClientId + '&vault=true&intent=subscription&currency=USD';
+        script.src = 'https://www.paypal.com/sdk/js?client-id=' + config.paypalClientId +
+          '&vault=true&intent=subscription&currency=USD';
         script.onload = function() {
-          function renderButton(selector) {
-            if (!document.querySelector(selector)) return;
-            paypal.Buttons({
-              style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'subscribe' },
-              createSubscription: function(data, actions) {
-                return actions.subscription.create({ plan_id: config.paypalPlanId });
-              },
-              onApprove: function(data) {
-                console.log('PayPal subscription approved:', data.subscriptionID);
-                // hide default success and show our post-payment flow
-                const ps = document.getElementById('payment-success');
-                if (ps) ps.classList.remove('show');
-                handlePaymentApproved(data.subscriptionID);
-                containers.forEach(function(el) { if (el) el.style.display = 'none'; });
-              },
-              onError: function(err) { console.error('PayPal error:', err); }
-            }).render(selector);
-          }
-          renderButton('#paypal-button-container');
+          if (!container) return;
+          paypal.Buttons({
+            style: {
+              layout: 'vertical',
+              color: 'gold',
+              shape: 'rect',
+              label: 'subscribe'
+            },
+            createSubscription: function(data, actions) {
+              return actions.subscription.create({ plan_id: config.paypalPlanId });
+            },
+            onApprove: function(data) {
+              console.log('PayPal subscription approved:', data.subscriptionID);
+              document.getElementById('payment-success').classList.add('show');
+              container.style.display = 'none';
+            },
+            onError: function(err) {
+              console.error('PayPal error:', err);
+            }
+          }).render('#paypal-button-container');
         };
-        script.onerror = function() { showUnconfigured('PayPal could not load. Please try again later.'); };
+        script.onerror = function() {
+          showUnconfigured('PayPal could not load. Please try again later.');
+        };
         document.body.appendChild(script);
       } catch (err) {
-        showUnconfigured('PayPal coming soon — please check back later.');
+        showUnconfigured('PayPal checkout is being set up. Please check back shortly.');
       }
     })();
   </script>
