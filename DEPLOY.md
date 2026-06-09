@@ -152,3 +152,92 @@ git push
 # Vercel auto-deploys if GitHub is connected, or run:
 vercel deploy --prod
 ```
+
+---
+
+## Part 6 — Production start, Docker, and stopping local server
+
+This project can run locally for development (Flask dev server) or in production using `gunicorn`, a container, or a platform that respects a `Procfile`.
+
+### 6a. `Procfile` (recommended for Railway/Heroku)
+
+Create a file named `Procfile` at the repo root with this single line (already added):
+
+```
+web: gunicorn -w 4 -b 0.0.0.0:$PORT app:app
+```
+
+Railway, Heroku, and some PaaS providers will use that start command automatically.
+
+### 6b. `Dockerfile` (already added)
+
+Build and run locally:
+
+```bash
+docker build -t yonderly:latest .
+docker run -p 8080:8080 -e PORT=8080 --env-file .secrets/.env yonderly:latest
+```
+
+On a host that provides a `$PORT` env var (Railway, Render), the `CMD` uses that value.
+
+### 6c. Windows — stop the local Flask server
+
+If you still see the site locally after deploying, a local process is still running. Common ways to stop it:
+
+Find processes listening on a port (replace `5000` or `8080` as needed):
+
+```powershell
+netstat -ano | findstr :5000
+netstat -ano | findstr :8080
+```
+
+That prints a PID in the last column. Stop it with:
+
+```powershell
+Stop-Process -Id <PID> -Force
+```
+
+If you started the Flask dev server from a terminal, simply close that terminal or press `Ctrl+C` in it.
+
+### 6d. macOS / Linux — stop process on port
+
+```bash
+# find PID
+lsof -i :5000
+# kill
+kill <PID>
+# or force
+kill -9 <PID>
+```
+
+### 6e. Vercel vs Railway vs Render (notes)
+
+- Vercel: excellent for static/front-end. For a Flask backend you need to use a Docker deployment or Serverless Functions; Vercel's serverless Python support may be limited for long-running workers. If you rely on background agents (email polling), prefer Railway/Render or a Docker host.
+- Railway: supports `Procfile` and Docker. It supplies a `$PORT` env var. Use the `Procfile` or Dockerfile above.
+- Render: supports Docker and a simple `gunicorn` start command.
+
+### 6f. Required environment variables (set these in host dashboard)
+
+Add the same variables you use locally in the host's Environment Variables or Secrets section. At minimum:
+
+```
+PAYPAL_CLIENT_ID
+PAYPAL_PLAN_ID
+PAYPAL_MODE
+ANTHROPIC_API_KEY
+FLASK_SECRET_KEY
+PREVIEW_MODE  # set to false in production unless you want drafts
+```
+
+### 6g. Check deployment logs
+
+If your deployed site is not serving the app, get the host logs and paste them here — I can help interpret. Example commands for Railway/Render are available in the host dashboards.
+
+---
+
+If you want, I can also:
+
+- Run `docker build` locally and verify the container starts (I can run commands in your workspace),
+- Help configure Railway/Vercel with the correct start command and environment variables,
+- Review deployment logs if you paste them here.
+
