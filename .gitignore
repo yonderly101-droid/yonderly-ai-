@@ -8,6 +8,7 @@ env/
 .env
 credentials.json
 token.json
+.secrets/
 *.sqlite3
 .DS_Store
 .vscode/
