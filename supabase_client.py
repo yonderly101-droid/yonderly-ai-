@@ -14,7 +14,17 @@ import requests
 from typing import Any, Dict, Optional
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+# Prefer explicit server-side service key names if provided in environment
+# Allow multiple common env var names: SUPABASE_KEY, SUPABASE_SERVICE_KEY, SUPABASE_SERVICE_ROLE, SUPABASE_ANON_KEY
+SUPABASE_KEY = (
+    os.environ.get("SUPABASE_KEY")
+    or os.environ.get("SUPABASE_SERVICE_KEY")
+    or os.environ.get("SUPABASE_SERVICE_ROLE")
+    or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    or os.environ.get("SUPABASE_ANON_KEY")
+    or ""
+)
 
 
 class SupabaseClient:

@@ -23,6 +23,12 @@ PROFILE_PATH = BASE_DIR / "business_profile.json"
 LOG_PATH = BASE_DIR / "whatsapp_log.json"
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 
+# Optional Supabase integration: will be used if SUPABASE_URL and a SUPABASE key are present
+try:
+    from supabase_client import from_env as supabase_from_env
+except Exception:
+    supabase_from_env = None
+
 
 def is_whatsapp_configured():
     """Check whether Twilio WhatsApp credentials are set."""
@@ -109,14 +115,35 @@ def send_whatsapp_message(to_number, message):
 
 def log_conversation(customer_number, customer_message, yonderly_reply):
     """Append a conversation entry to whatsapp_log.json."""
-    log = load_whatsapp_log()
-    log.append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+    timestamp = datetime.now(timezone.utc).isoformat()
+    entry = {
+        "timestamp": timestamp,
         "customer_number": customer_number,
         "customer_message": customer_message,
         "yonderly_reply": yonderly_reply,
-    })
+    }
+
+    # Local JSON fallback
+    log = load_whatsapp_log()
+    log.append(entry)
     save_whatsapp_log(log)
+
+    # Try to persist into Supabase (best-effort). If supabase_from_env is not available
+    # or insertion fails, keep the local JSON as the source of truth.
+    if supabase_from_env:
+        try:
+            client = supabase_from_env()
+            # Map to a simple row structure; ensure your Supabase table `whatsapp_messages`
+            # has matching column names: timestamp, customer_number, customer_message, yonderly_reply, source
+            client.insert("whatsapp_messages", {
+                "timestamp": timestamp,
+                "customer_number": customer_number,
+                "customer_message": customer_message,
+                "yonderly_reply": yonderly_reply,
+                "source": "twilio_whatsapp",
+            })
+        except Exception as e:
+            print("Supabase log failed:", e)
 
 
 def handle_incoming_message(from_number, body):
