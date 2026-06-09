@@ -13,6 +13,9 @@ import anthropic
 from dotenv import load_dotenv
 from flask import request
 
+# sanitization
+from utils.security import sanitize_text, validate_phone
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -122,6 +125,15 @@ def handle_incoming_message(from_number, body):
     if not api_key:
         return "Yonderly is not configured yet. Please add your Anthropic API key."
 
+    # sanitize and validate inputs
+    cleaned_number = (from_number or "").strip()
+    if not validate_phone(cleaned_number):
+        return "Invalid phone number."
+
+    body, ok = sanitize_text(body, max_length=2000)
+    if not ok:
+        return "Message too long."
+
     profile = load_business_profile()
     if not profile:
         return "Yonderly is not set up yet. Please complete the business onboarding form."
@@ -136,7 +148,7 @@ def register_whatsapp_routes(app):
     """Register the /whatsapp webhook route on a Flask app."""
 
     @app.route("/whatsapp", methods=["POST"])
-    def whatsapp_webhook():
+        def whatsapp_webhook():
         """Receive incoming WhatsApp messages from Twilio."""
         if not is_whatsapp_configured():
             print("WhatsApp not configured yet")

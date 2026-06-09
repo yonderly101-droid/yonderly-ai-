@@ -12,6 +12,13 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import requests
 
+# rate limiting
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# input sanitization
+from utils.security import sanitize_text, validate_email, validate_order_id
+
 from whatsapp_agent import register_whatsapp_routes
 
 load_dotenv()
@@ -19,6 +26,10 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "yonderly-dev-secret-change-me")
 register_whatsapp_routes(app)
+
+# Setup limiter (memory storage for simplicity; switch to Redis in production)
+limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
+limiter.init_app(app)
 
 # PayPal configuration (use environment variables; do NOT store secrets in repo)
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
@@ -157,7 +168,33 @@ def submit():
         flash("Please select a valid tone: professional, friendly, or casual.", "error")
         return redirect(url_for("index"))
 
-    save_profile(request.form)
+    # sanitize and validate inputs
+    business_name, ok1 = sanitize_text(request.form.get("business_name", ""), max_length=200)
+    offerings, ok2 = sanitize_text(request.form.get("offerings", ""), max_length=2000)
+    prices, ok3 = sanitize_text(request.form.get("prices", ""), max_length=1000)
+    common_questions, ok4 = sanitize_text(request.form.get("common_questions", ""), max_length=2000)
+    restrictions, ok5 = sanitize_text(request.form.get("restrictions", ""), max_length=1000)
+    contact_email = (request.form.get("contact_email", "") or "").strip()
+
+    if not validate_email(contact_email):
+        flash("Please provide a valid contact email.", "error")
+        return redirect(url_for("index"))
+
+    if not all([ok1, ok2, ok3, ok4, ok5]):
+        flash("Some fields were too long. Please shorten them.", "error")
+        return redirect(url_for("index"))
+
+    cleaned_form = {
+        "business_name": business_name,
+        "offerings": offerings,
+        "prices": prices,
+        "common_questions": common_questions,
+        "tone": tone,
+        "contact_email": contact_email.lower(),
+        "restrictions": restrictions,
+    }
+
+    save_profile(cleaned_form)
     return redirect(url_for("success"))
 
 
@@ -222,8 +259,8 @@ def get_paypal_token():
 @app.route('/payment/success', methods=['POST'])
 def payment_success():
     order_id = request.json.get('orderID')
-    if not order_id:
-        return jsonify({"success": False, "error": "missing orderID"}), 400
+    if not order_id or not validate_order_id(order_id):
+        return jsonify({"success": False, "error": "missing or invalid orderID"}), 400
 
     try:
         token = get_paypal_token()
