@@ -148,7 +148,7 @@ def register_whatsapp_routes(app):
     """Register the /whatsapp webhook route on a Flask app."""
 
     @app.route("/whatsapp", methods=["POST"])
-        def whatsapp_webhook():
+    def whatsapp_webhook():
         """Receive incoming WhatsApp messages from Twilio."""
         if not is_whatsapp_configured():
             print("WhatsApp not configured yet")
