@@ -88,7 +88,7 @@ async function generateReply(customerMessage, profile, channel) {
   return data.content?.[0]?.text?.trim() || '';
 }
 
-async function handleRequest(req, res) {
+module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -140,10 +140,4 @@ async function handleRequest(req, res) {
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Demo failed. Please try again.' });
   }
-}
-
-module.exports = (req, res) => {
-  handleRequest(req, res).catch(() => {
-    res.status(500).json({ error: 'Server error' });
-  });
 };
