@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 import requests
 
 # rate limiting
@@ -33,6 +33,12 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "yonderly-dev-secret-change-me")
 register_whatsapp_routes(app)
+
+
+@app.route('/')
+def home():
+    # Serve the static landing page at the root URL
+    return send_from_directory('static', 'index.html')
 
 # Setup limiter (memory storage for simplicity; switch to Redis in production)
 limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
@@ -446,11 +452,7 @@ def payment_success():
         return jsonify({"success": False}), 400
 
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
-    print(f"\n  Yonderly is running at http://127.0.0.1:{port}")
-    print(f"  Dashboard: http://127.0.0.1:{port}/dashboard\n")
-    if debug_mode:
-        print("  WARNING: Running in debug mode. Do not enable in production.")
-    app.run(debug=debug_mode, host="127.0.0.1", port=port)
+if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

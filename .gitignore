@@ -25,6 +25,8 @@ token.json
 business_profile.json
 email_log.json
 whatsapp_log.json
+valid_tokens.json
+pending_replies.json
 
 # Python
 __pycache__/
