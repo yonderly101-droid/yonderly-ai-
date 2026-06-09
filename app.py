@@ -20,6 +20,13 @@ from flask_limiter.util import get_remote_address
 from utils.security import sanitize_text, validate_email, validate_order_id
 
 from whatsapp_agent import register_whatsapp_routes
+from email_agent import (
+    load_pending_replies,
+    save_pending_replies,
+    get_gmail_service,
+    send_reply,
+    log_conversation,
+)
 
 load_dotenv()
 
@@ -233,7 +240,82 @@ def dashboard():
         profile=profile,
         emails=emails,
         stats=stats,
+        pending_replies=load_pending_replies(),
     )
+
+
+@app.route('/api/pending_replies', methods=['GET'])
+def api_get_pending_replies():
+    pending = load_pending_replies()
+    return jsonify(pending)
+
+
+@app.route('/api/pending_replies/approve', methods=['POST'])
+def api_approve_reply():
+    data = request.get_json() or {}
+    ts = data.get('timestamp')
+    if not ts:
+        return jsonify({'success': False, 'error': 'missing timestamp'}), 400
+
+    pending = load_pending_replies()
+    match = None
+    for entry in pending:
+        if entry.get('timestamp') == ts:
+            match = entry
+            break
+
+    if not match:
+        return jsonify({'success': False, 'error': 'not found'}), 404
+
+    try:
+        service = get_gmail_service()
+    except Exception as exc:
+        return jsonify({'success': False, 'error': f'Gmail connection failed: {exc}'}), 500
+
+    # Construct a minimal original_email object expected by send_reply
+    original_email = {
+        'from': match.get('from') or f"{match.get('customer_name')} <{match.get('customer_email')}>",
+        'message_id': match.get('message_id'),
+        'thread_id': match.get('thread_id'),
+    }
+
+    profile = load_profile() or {}
+
+    try:
+        send_reply(service, original_email, match.get('yonderly_reply', ''), profile)
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+    # move to email log
+    log_conversation(
+        match.get('customer_name'),
+        match.get('customer_email'),
+        match.get('subject'),
+        match.get('customer_message'),
+        match.get('yonderly_reply'),
+    )
+
+    # remove from pending and save
+    pending = [e for e in pending if e.get('timestamp') != ts]
+    save_pending_replies(pending)
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/pending_replies/discard', methods=['POST'])
+def api_discard_reply():
+    data = request.get_json() or {}
+    ts = data.get('timestamp')
+    if not ts:
+        return jsonify({'success': False, 'error': 'missing timestamp'}), 400
+
+    pending = load_pending_replies()
+    new_pending = [e for e in pending if e.get('timestamp') != ts]
+    if len(new_pending) == len(pending):
+        return jsonify({'success': False, 'error': 'not found'}), 404
+
+    save_pending_replies(new_pending)
+    return jsonify({'success': True})
 
 
 @app.route('/pricing')

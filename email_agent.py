@@ -26,6 +26,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 PROFILE_PATH = BASE_DIR / "business_profile.json"
 LOG_PATH = BASE_DIR / "email_log.json"
+PENDING_PATH = BASE_DIR / "pending_replies.json"
 CREDENTIALS_PATH = BASE_DIR / "credentials.json"
 TOKEN_PATH = BASE_DIR / "token.json"
 
@@ -384,6 +385,19 @@ def log_conversation(customer_name, customer_email, subject, customer_message, y
     save_email_log(log)
 
 
+def load_pending_replies():
+    """Load pending replies saved when PREVIEW_MODE is enabled."""
+    if PENDING_PATH.exists():
+        with open(PENDING_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def save_pending_replies(pending):
+    with open(PENDING_PATH, "w", encoding="utf-8") as f:
+        json.dump(pending, f, indent=2, ensure_ascii=False)
+
+
 def process_email(service, client, profile, email):
     """Handle a single unread email: generate reply, send it, log it, mark read."""
     customer_address = extract_email_address(email["from"])
@@ -424,6 +438,32 @@ def process_email(service, client, profile, email):
             return "credit_error"
         raise
 
+    # If preview mode is enabled, save the drafted reply instead of sending
+    preview_mode = os.environ.get("PREVIEW_MODE", "false").lower() in ("1", "true", "yes")
+    if preview_mode:
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "customer_email": customer_address,
+            "customer_name": customer_name,
+            "subject": email["subject"],
+            "customer_message": email["body"],
+            "yonderly_reply": reply,
+            # store original metadata so sending later can include references
+            "from": email.get("from", ""),
+            "message_id": email.get("message_id"),
+            "thread_id": email.get("thread_id"),
+        }
+
+        pending = load_pending_replies()
+        pending.append(entry)
+        save_pending_replies(pending)
+
+        # Mark read to avoid re-processing and notify operator
+        mark_as_read(service, email["id"])
+        print(f"Reply drafted for {customer_address} — approve it on the dashboard before sending")
+        return
+
+    # Normal automatic sending
     send_reply(service, email, reply, profile)
     mark_as_read(service, email["id"])
     log_conversation(

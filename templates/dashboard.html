@@ -44,6 +44,33 @@
         {% endif %}
       </div>
 
+      <section class="pending-replies-section">
+        <h2>Pending Replies</h2>
+        {% if pending_replies and pending_replies|length > 0 %}
+          <div class="pending-list">
+            {% for p in pending_replies|reverse %}
+              <div class="pending-item" data-ts="{{ p.timestamp }}">
+                <div class="pending-meta">
+                  <strong>{{ p.customer_name }}</strong>
+                  &nbsp;·&nbsp; <span class="pending-email">{{ p.customer_email }}</span>
+                  &nbsp;·&nbsp; <span class="pending-subject">{{ p.subject }}</span>
+                </div>
+                <div class="pending-body">
+                  <div class="pending-customer">{{ p.customer_message }}</div>
+                  <div class="pending-reply">{{ p.yonderly_reply }}</div>
+                </div>
+                <div class="pending-actions">
+                  <button class="btn-approve" data-ts="{{ p.timestamp }}">Approve & Send</button>
+                  <button class="btn-discard" data-ts="{{ p.timestamp }}">Discard</button>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state small">No pending replies — Yonderly is up to date</div>
+        {% endif %}
+      </section>
+
       {% if emails %}
         <div class="table-wrap">
           <table class="email-table">
@@ -113,6 +140,7 @@
   </div>
 
   <script id="email-data" type="application/json">{{ emails | tojson }}</script>
+  <script id="pending-data" type="application/json">{{ pending_replies | tojson }}</script>
   <script>
     const overlay = document.getElementById('modal-overlay');
     const closeBtn = document.getElementById('modal-close');
@@ -158,6 +186,55 @@
 
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && !overlay.hidden) closeModal();
+    });
+
+    // Pending replies actions
+    const pendingData = JSON.parse(document.getElementById('pending-data').textContent || '[]');
+
+    async function approveReply(ts) {
+      const res = await fetch('/api/pending_replies/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp: ts })
+      });
+      return res.json();
+    }
+
+    async function discardReply(ts) {
+      const res = await fetch('/api/pending_replies/discard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp: ts })
+      });
+      return res.json();
+    }
+
+    document.querySelectorAll('.btn-approve').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const ts = this.dataset.ts;
+        this.disabled = true;
+        const r = await approveReply(ts);
+        if (r && r.success) {
+          this.closest('.pending-item').remove();
+        } else {
+          alert('Failed to approve: ' + (r.error || 'unknown'));
+          this.disabled = false;
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-discard').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const ts = this.dataset.ts;
+        this.disabled = true;
+        const r = await discardReply(ts);
+        if (r && r.success) {
+          this.closest('.pending-item').remove();
+        } else {
+          alert('Failed to discard: ' + (r.error || 'unknown'));
+          this.disabled = false;
+        }
+      });
     });
   </script>
 </body>

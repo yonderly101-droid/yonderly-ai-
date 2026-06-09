@@ -8,3 +8,5 @@ twilio>=9.5.0
 requests>=2.31.0
 flask-limiter>=2.8.0
 bleach>=6.0.0
+flake8>=6.0.0
+pytest>=7.0.0

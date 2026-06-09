@@ -702,7 +702,7 @@
         <div class="nav-links">
           <a href="#how-it-works">How it works</a>
           <a href="#pricing">Pricing</a>
-          <a href="#waitlist" class="btn btn-primary">Get early access</a>
+          <a href="https://www.paypal.com/ncp/payment/AFV5VQLLCMAHN" target="_blank" rel="noopener" class="btn btn-primary">Ready to go</a>
         </div>
       </div>
     </nav>
@@ -713,7 +713,7 @@
         <h1 class="reveal"><span class="gradient-text">Your business's first AI employee</span></h1>
         <p class="hero-sub reveal reveal-delay-1">Yonderly handles your WhatsApp messages, replies to emails, books appointments, and follows up on leads — 24/7, at $49/month flat.</p>
         <div class="hero-buttons reveal reveal-delay-2">
-          <a href="#waitlist" class="btn btn-primary">Join the waitlist</a>
+          <a href="https://www.paypal.com/ncp/payment/AFV5VQLLCMAHN" target="_blank" rel="noopener" class="btn btn-primary">Pay with PayPal</a>
           <a href="#how-it-works" class="btn btn-ghost">See how it works</a>
         </div>
         <p class="hero-proof reveal reveal-delay-3">🔒 No credit card required · Setup in 10 minutes · Cancel anytime</p>
@@ -836,7 +836,7 @@
               <li>10-minute setup</li>
               <li>Cancel anytime</li>
             </ul>
-            <a href="#waitlist" class="btn btn-primary" style="width:100%">Join the waitlist</a>
+            <a href="https://www.paypal.com/ncp/payment/AFV5VQLLCMAHN" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%">Pay with PayPal</a>
 
             <div class="paypal-section">
               <p class="paypal-label">Or subscribe now with PayPal</p>
@@ -871,7 +871,14 @@
 
         <div class="reveal" style="max-width:480px;margin:1.5rem auto 0;">
           <p class="paypal-label">Ready to start? Subscribe with PayPal Business</p>
-          <div id="paypal-waitlist-container"></div>
+          <!-- Hosted PayPal button -->
+          <script src="https://www.paypal.com/sdk/js?client-id=BAAURa8OVpzkLkcxSq8V1YuIOaJ41m3Tlu_DTjaPTzs5SXWe2pzS8naMdP4gbMHvL-x5JxkahL8X7gCmhQ&components=hosted-buttons&disable-funding=venmo&currency=USD"></script>
+          <div id="paypal-container-AFV5VQLLCMAHN"></div>
+          <script>
+            paypal.HostedButtons({
+              hostedButtonId: "AFV5VQLLCMAHN",
+            }).render("#paypal-container-AFV5VQLLCMAHN");
+          </script>
         </div>
 
         <p class="waitlist-social reveal">Join 200+ small businesses already on the waitlist</p>
