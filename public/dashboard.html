@@ -44,18 +44,45 @@
     code { background:#111827; padding:2px 6px; border-radius:6px; font-size:.85rem; }
     ol { color:var(--muted); padding-left:20px; }
     ol li { margin-bottom:8px; }
+    .header-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
+    .header-actions { display:flex; gap:10px; align-items:center; position:relative; }
+    .menu-btn { background:transparent; border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px 12px; cursor:pointer; font-size:1.1rem; line-height:1; }
+    .menu-dropdown { display:none; position:absolute; right:0; top:calc(100% + 8px); min-width:220px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:8px; z-index:20; box-shadow:0 12px 40px rgba(0,0,0,.35); }
+    .menu-dropdown.open { display:block; }
+    .menu-dropdown a, .menu-dropdown button { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:transparent; color:var(--text); text-decoration:none; border-radius:8px; cursor:pointer; font-size:.95rem; }
+    .menu-dropdown a:hover, .menu-dropdown button:hover { background:#111827; }
+    .menu-divider { height:1px; background:var(--border); margin:6px 0; }
+    .welcome-line { color:var(--muted); font-size:.9rem; margin:0 0 16px; }
+    .tabs { display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border); }
+    .tab-btn { background:transparent; border:none; color:var(--muted); padding:12px 16px; cursor:pointer; font-weight:600; font-size:.95rem; border-bottom:2px solid transparent; margin-bottom:-1px; }
+    .tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .activity-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="wrap">
-    <header>
-      <div class="logo">Yonderly Dashboard</div>
-      <div style="display:flex;gap:10px;align-items:center">
+    <div class="header-row">
+      <div class="logo">Yonderly</div>
+      <div class="header-actions">
         <span class="badge" id="status-badge">Loading…</span>
-        <button class="btn secondary" id="signout-btn">Sign out</button>
+        <button type="button" class="menu-btn" id="menu-btn" aria-label="Menu">☰</button>
+        <div class="menu-dropdown" id="menu-dropdown">
+          <a href="/onboarding" id="menu-profile-link">Edit business profile</a>
+          <div class="menu-divider"></div>
+          <a href="/">Back to site</a>
+          <button type="button" id="signout-btn">Sign out</button>
+        </div>
       </div>
-    </header>
+    </div>
+    <p class="welcome-line" id="welcome-text">Loading your account…</p>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab-btn active" id="tab-channels" data-tab="channels">Channels</button>
+      <button type="button" class="tab-btn" id="tab-activity" data-tab="activity">Activity</button>
+    </nav>
 
     <div class="alert" id="billing-alert" style="display:none">
       Your subscription is not active yet. Subscribe below to unlock your AI agent.
@@ -65,9 +92,10 @@
     <div class="alert ok" id="gmail-success" style="display:none"></div>
     <div class="alert err" id="gmail-error" style="display:none"></div>
     <div class="alert info" id="setup-hint" style="display:none">
-      Step 1: <a href="/onboarding" style="color:#6c8cff">Complete your business profile</a> — then connect Gmail and WhatsApp below.
+      Complete your <a href="/onboarding" style="color:#6c8cff">business profile</a> from the menu (☰), then connect Gmail and WhatsApp.
     </div>
 
+    <div id="panel-channels" class="tab-panel active">
     <div class="grid">
       <div class="card"><div class="stat" id="stat-email">—</div><div class="label">Email channel</div></div>
       <div class="card"><div class="stat" id="stat-wa">—</div><div class="label">WhatsApp channel</div></div>
@@ -81,6 +109,7 @@
         <p id="gmail-status-text">One-click OAuth — Yonderly replies to customer emails in the cloud.</p>
         <div class="actions">
           <button class="btn primary" id="connect-gmail-btn">Connect Gmail</button>
+          <button class="btn secondary" id="check-inbox-btn" style="display:none">Check inbox now</button>
           <button class="btn danger" id="disconnect-gmail-btn" style="display:none">Disconnect</button>
         </div>
         <p id="gmail-meta" style="margin-top:12px;font-size:.85rem;color:var(--muted)"></p>
@@ -88,48 +117,60 @@
 
       <div class="card">
         <h2>WhatsApp</h2>
-        <p id="wa-status-text">Link your own WhatsApp Business number. No Config ID needed.</p>
-        <div id="wa-manual-panel">
+        <p id="wa-status-text">Connect your WhatsApp Business number in one click.</p>
+        <div class="actions" id="wa-connect-actions">
+          <button class="btn primary" id="connect-wa-btn" disabled>Connect WhatsApp</button>
+          <button class="btn danger" id="disconnect-wa-btn" style="display:none">Disconnect</button>
+        </div>
+        <div id="wa-manual-panel" style="display:none;margin-top:16px">
+          <div class="wa-setup-guide" style="background:rgba(108,140,255,.08);border:1px solid rgba(108,140,255,.25);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+            <p style="margin:0 0 10px;font-weight:600;font-size:.95rem">Connect your WhatsApp (5 steps, one-time)</p>
+            <ol style="margin:0;padding-left:1.2rem;font-size:.85rem;line-height:1.55;color:var(--muted)">
+              <li style="margin-bottom:8px"><strong style="color:var(--text)">Complete your business profile</strong> in Yonderly first — the AI uses it to answer customers.</li>
+              <li style="margin-bottom:8px"><strong style="color:var(--text)">Add your business number in Meta.</strong> Open <a href="https://business.facebook.com/settings/whatsapp-business-accounts" target="_blank" rel="noopener" style="color:#6c8cff">Meta Business Settings → WhatsApp accounts</a> → add the number customers already use. Verify it by SMS.</li>
+              <li style="margin-bottom:8px"><strong style="color:var(--text)">Move the number to the API.</strong> The line cannot stay active in the normal WhatsApp or WhatsApp Business phone app at the same time — Meta will switch it to automated messaging.</li>
+              <li style="margin-bottom:8px"><strong style="color:var(--text)">Copy your Phone number ID.</strong> In Meta go to <a href="https://business.facebook.com/wa/manage/home/" target="_blank" rel="noopener" style="color:#6c8cff">WhatsApp Manager</a>, select your number, then open API / developer settings. Copy the long <strong>Phone number ID</strong> (numbers only). If you cannot find it, contact Yonderly support — we can help on a quick call.</li>
+              <li><strong style="color:var(--text)">Paste below and click Link.</strong> Your customers keep messaging the same number on your website — they never see these IDs.</li>
+            </ol>
+          </div>
           <label for="wa-phone-number-id" style="font-size:.85rem;color:var(--muted)">Phone number ID</label>
-          <input type="text" id="wa-phone-number-id" placeholder="e.g. 1137266636139583" inputmode="numeric">
-          <label for="wa-waba-id" style="font-size:.85rem;color:var(--muted);margin-top:10px;display:block">WhatsApp Business Account ID (optional)</label>
-          <input type="text" id="wa-waba-id" placeholder="e.g. 123456789012345" inputmode="numeric">
-          <div class="actions">
-            <button class="btn primary" id="link-wa-manual-btn">Link my WhatsApp number</button>
-            <button class="btn danger" id="disconnect-wa-btn" style="display:none">Disconnect</button>
+          <input type="text" id="wa-phone-number-id" placeholder="Paste from Meta (numbers only)" inputmode="numeric">
+          <label for="wa-waba-id" style="font-size:.85rem;color:var(--muted);margin-top:10px;display:block">WhatsApp Business Account ID <span style="opacity:.8">(optional but helps linking)</span></label>
+          <input type="text" id="wa-waba-id" placeholder="Optional — from same Meta screen" inputmode="numeric">
+          <div class="actions" style="margin-top:10px">
+            <button class="btn primary" id="link-wa-manual-btn">Link WhatsApp number</button>
           </div>
           <details style="margin-top:12px">
-            <summary style="cursor:pointer;color:var(--accent)">Where do I find these IDs?</summary>
-            <ol style="margin-top:10px;font-size:.85rem">
-              <li>Go to <a href="https://developers.facebook.com/apps/2030984981156393/whatsapp-business/wa-dev-console/" target="_blank" rel="noopener" style="color:#6c8cff">Meta → WhatsApp → API Setup</a></li>
-              <li>Copy <strong>Phone number ID</strong> (under your number)</li>
-              <li>Copy <strong>WhatsApp Business Account ID</strong> if shown (optional but recommended)</li>
-              <li>Paste above → click <strong>Link my WhatsApp number</strong></li>
-            </ol>
+            <summary style="cursor:pointer;color:var(--accent);font-size:.85rem">Troubleshooting</summary>
+            <ul style="margin-top:10px;font-size:.85rem;padding-left:1.2rem;color:var(--muted);line-height:1.5">
+              <li>Do not use Meta’s +1 555 test number for real customers.</li>
+              <li>If linking fails, try adding the WABA ID from the same Meta page.</li>
+              <li>Make sure your Yonderly business profile is saved before linking.</li>
+            </ul>
           </details>
         </div>
         <p id="wa-meta" style="margin-top:12px;font-size:.85rem;color:var(--muted)"></p>
       </div>
     </div>
-
-    <div class="card">
-      <h2>Your AI employee</h2>
-      <p id="welcome-text">Loading your account…</p>
-      <div class="actions">
-        <a href="/onboarding" class="btn primary" id="setup-btn">Set up business profile</a>
-        <a href="/" class="btn secondary">Back to site</a>
-      </div>
     </div>
 
-    <div class="card" style="margin-top:16px">
-      <h2>Recent email activity</h2>
-      <p id="email-empty">No emails handled yet.</p>
-      <table id="email-table" style="display:none">
-        <thead>
-          <tr><th>When</th><th>From</th><th>Subject</th><th>Status</th></tr>
-        </thead>
-        <tbody id="email-rows"></tbody>
-      </table>
+    <div id="panel-activity" class="tab-panel">
+      <div class="card">
+        <div class="activity-toolbar">
+          <div>
+            <h2 style="margin:0">Recent activity</h2>
+            <p style="margin:6px 0 0;font-size:.85rem" id="activity-hint">Auto-refreshes every 10 minutes. Click Refresh anytime for an instant check.</p>
+          </div>
+          <button type="button" class="btn secondary" id="refresh-activity-btn">Refresh</button>
+        </div>
+        <p id="email-empty">No emails handled yet. Connect Gmail on the Channels tab, then click Refresh.</p>
+        <table id="email-table" style="display:none">
+          <thead>
+            <tr><th>When</th><th>From</th><th>Subject</th><th>Status</th></tr>
+          </thead>
+          <tbody id="email-rows"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -138,9 +179,14 @@
     const billingAlert = document.getElementById('billing-alert');
     const statusBadge = document.getElementById('status-badge');
     const welcomeText = document.getElementById('welcome-text');
-    const setupBtn = document.getElementById('setup-btn');
-    const setupHint = document.getElementById('setup-hint');
+    const menuBtn = document.getElementById('menu-btn');
+    const menuDropdown = document.getElementById('menu-dropdown');
+    const menuProfileLink = document.getElementById('menu-profile-link');
     const connectGmailBtn = document.getElementById('connect-gmail-btn');
+    const checkInboxBtn = document.getElementById('check-inbox-btn');
+    const refreshActivityBtn = document.getElementById('refresh-activity-btn');
+    const setupHint = document.getElementById('setup-hint');
+    const activityHint = document.getElementById('activity-hint');
     const disconnectGmailBtn = document.getElementById('disconnect-gmail-btn');
     const gmailStatusText = document.getElementById('gmail-status-text');
     const gmailMeta = document.getElementById('gmail-meta');
@@ -148,6 +194,7 @@
     const gmailError = document.getElementById('gmail-error');
     const waStatusText = document.getElementById('wa-status-text');
     const waMeta = document.getElementById('wa-meta');
+    const connectWaBtn = document.getElementById('connect-wa-btn');
     const disconnectWaBtn = document.getElementById('disconnect-wa-btn');
     const linkWaManualBtn = document.getElementById('link-wa-manual-btn');
     const waManualPanel = document.getElementById('wa-manual-panel');
@@ -155,8 +202,250 @@
     const waWabaIdInput = document.getElementById('wa-waba-id');
 
     let accountCache = null;
+    let waEmbeddedConfig = null;
+    let waEmbeddedSignupLive = false;
+    let waSignupPending = false;
+    let dashboardReady = false;
+    let gmailCache = { connected: false, recentMessages: [] };
+    const ACTIVITY_REFRESH_MS = 10 * 60 * 1000;
+    let activityRefreshTimer = null;
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.tab === name);
+      });
+      document.querySelectorAll('.tab-panel').forEach((panel) => {
+        panel.classList.toggle('active', panel.id === 'panel-' + name);
+      });
+      if (name === 'activity' && gmailCache.connected) {
+        refreshEmailActivity(false);
+      }
+    }
+
+    document.getElementById('tab-channels').onclick = () => switchTab('channels');
+    document.getElementById('tab-activity').onclick = () => switchTab('activity');
+
+    menuBtn.onclick = (e) => {
+      e.stopPropagation();
+      menuDropdown.classList.toggle('open');
+    };
+    document.addEventListener('click', () => menuDropdown.classList.remove('open'));
+    menuDropdown.onclick = (e) => e.stopPropagation();
 
     document.getElementById('signout-btn').onclick = () => YonderlyAuth.signOut();
+
+    async function loadWaEmbeddedConfig() {
+      const cfg = await YonderlyAuth.loadConfig();
+      const embeddedConfigId = cfg.whatsappEmbeddedConfigId || cfg.embeddedConfigId || '';
+      waEmbeddedSignupLive = Boolean(cfg.whatsappEmbeddedSignupLive);
+      waEmbeddedConfig = {
+        metaAppId: cfg.metaAppId || '',
+        embeddedConfigId,
+        ready: Boolean(waEmbeddedSignupLive && cfg.metaAppId && embeddedConfigId),
+      };
+      return waEmbeddedConfig;
+    }
+
+    async function refreshAccountCache() {
+      accountCache = await YonderlyAuth.fetchAccount();
+      return accountCache;
+    }
+
+    function loadFacebookSdk(appId) {
+      return new Promise((resolve, reject) => {
+        if (window.FB) {
+          resolve();
+          return;
+        }
+        window.fbAsyncInit = function () {
+          window.FB.init({ appId, cookie: true, xfbml: false, version: 'v21.0' });
+          resolve();
+        };
+        const existing = document.getElementById('facebook-jssdk');
+        if (existing) {
+          existing.addEventListener('load', () => resolve());
+          existing.addEventListener('error', () => reject(new Error('Could not load Facebook SDK')));
+          return;
+        }
+        const script = document.createElement('script');
+        script.id = 'facebook-jssdk';
+        script.async = true;
+        script.defer = true;
+        script.src = 'https://connect.facebook.net/en_US/sdk.js';
+        script.onerror = () => reject(new Error('Could not load Facebook SDK'));
+        document.body.appendChild(script);
+      });
+    }
+
+    function setWaFlowStatus(text) {
+      if (text) waMeta.textContent = text;
+    }
+
+    function resetWaSignupUi(message) {
+      waSignupPending = false;
+      connectWaBtn.disabled = false;
+      if (waSignupTimer) {
+        clearTimeout(waSignupTimer);
+        waSignupTimer = null;
+      }
+      if (message) setWaFlowStatus(message);
+    }
+
+    let waSignupTimer = null;
+
+    function finishWhatsAppEmbeddedSignup(payload) {
+      const wabaId = String(payload.waba_id || '').replace(/\D/g, '');
+      const phoneNumberId = String(payload.phone_number_id || '').replace(/\D/g, '');
+      if (!phoneNumberId && !wabaId) {
+        alert(
+          'Meta did not return your WhatsApp account yet. In the popup, continue past login — add or select your business phone number, then click Finish.'
+        );
+        resetWaSignupUi('Waiting for you to finish all steps in the Meta popup.');
+        return;
+      }
+      setWaFlowStatus('Linking your WhatsApp number with Yonderly…');
+      YonderlyAuth.completeWhatsAppSignup({ phone_number_id: phoneNumberId, waba_id: wabaId })
+        .then(() => location.reload())
+        .catch((err) => {
+          alert(err.message || 'Could not link WhatsApp');
+          resetWaSignupUi(err.message || 'Could not link WhatsApp');
+        });
+    }
+
+    function isFacebookOrigin(origin) {
+      try {
+        const host = new URL(origin).hostname;
+        return host === 'facebook.com' || host.endsWith('.facebook.com');
+      } catch {
+        return false;
+      }
+    }
+
+    function parseEmbeddedSignupMessage(raw) {
+      if (!raw) return null;
+      if (typeof raw === 'object') return raw;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      if (!isFacebookOrigin(event.origin)) return;
+      const data = parseEmbeddedSignupMessage(event.data);
+      if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
+
+      if (waSignupPending) {
+        const step = data.data?.current_step ? (' · ' + data.data.current_step) : '';
+        setWaFlowStatus('Meta signup: ' + data.event + step);
+      }
+
+      if (!waSignupPending) return;
+
+      if (data.event === 'CANCEL') {
+        resetWaSignupUi('WhatsApp connect cancelled.');
+        return;
+      }
+      if (data.event === 'ERROR') {
+        resetWaSignupUi('');
+        const msg = data.data?.error_message || 'WhatsApp connect failed in Meta';
+        if (/BSP|Tech Provider|TP|isn't available/i.test(msg)) {
+          alert(
+            'One-click Connect is not available yet. Follow the 5 steps below to link your number manually.'
+          );
+          waManualPanel.style.display = 'block';
+        } else {
+          alert(msg);
+        }
+        return;
+      }
+
+      const doneEvents = [
+        'FINISH',
+        'FINISH_ONLY_WABA',
+        'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING',
+      ];
+      if (!doneEvents.includes(data.event)) return;
+
+      const ids = data.data || {};
+      finishWhatsAppEmbeddedSignup({
+        phone_number_id: ids.phone_number_id,
+        waba_id: ids.waba_id,
+      });
+    });
+
+    async function launchWhatsAppEmbeddedSignup() {
+      connectWaBtn.disabled = true;
+      try {
+        await refreshAccountCache();
+        await loadWaEmbeddedConfig();
+      } catch (err) {
+        connectWaBtn.disabled = false;
+        alert(err.message || 'Could not load your account. Refresh the page and try again.');
+        return;
+      }
+
+      const hasProfile = Boolean(
+        accountCache?.hasBusinessProfile || accountCache?.businessProfile?.business_name
+      );
+      if (!hasProfile) {
+        connectWaBtn.disabled = false;
+        alert('Complete your business profile first.');
+        location.href = '/onboarding';
+        return;
+      }
+      if (!waEmbeddedConfig?.ready) {
+        connectWaBtn.disabled = false;
+        alert('WhatsApp connect is not configured on the server yet. Use Advanced manual link below.');
+        waManualPanel.style.display = 'block';
+        return;
+      }
+
+      connectWaBtn.disabled = true;
+      waSignupPending = true;
+      setWaFlowStatus('Opening Meta… After login, keep going: add or select your WhatsApp business number, then click Finish.');
+      waSignupTimer = setTimeout(() => {
+        if (!waSignupPending) return;
+        resetWaSignupUi('Still waiting on Meta. If the popup closed early, click Connect WhatsApp and complete all steps.');
+      }, 120000);
+      try {
+        await loadFacebookSdk(waEmbeddedConfig.metaAppId);
+        window.FB.login(
+          (response) => {
+            if (!response?.authResponse) {
+              resetWaSignupUi('WhatsApp connect cancelled or popup closed before finishing.');
+              return;
+            }
+            setWaFlowStatus(
+              'Logged in with Meta. In the popup, add or select your WhatsApp business number and click Finish — do not close yet.'
+            );
+          },
+          {
+            config_id: waEmbeddedConfig.embeddedConfigId,
+            auth_type: 'rerequest',
+            response_type: 'code',
+            override_default_response_type: true,
+            extras: {
+              setup: {},
+              sessionInfoVersion: '3',
+              feature: 'whatsapp_embedded_signup',
+            },
+          }
+        );
+      } catch (err) {
+        resetWaSignupUi('');
+        alert(err.message || 'Could not open WhatsApp connect');
+      }
+    }
+
+    connectWaBtn.onclick = () => {
+      if (!dashboardReady) {
+        alert('Dashboard is still loading. Wait a moment and try again.');
+        return;
+      }
+      launchWhatsAppEmbeddedSignup();
+    };
 
     connectGmailBtn.onclick = () => {
       connectGmailBtn.disabled = true;
@@ -165,6 +454,51 @@
         alert(err.message || 'Could not connect Gmail');
       });
     };
+
+    async function refreshEmailActivity(runPoll) {
+      if (!gmailCache.connected) {
+        activityHint.textContent = 'Connect Gmail on the Channels tab first.';
+        renderEmailActivity([]);
+        return;
+      }
+      refreshActivityBtn.disabled = true;
+      if (checkInboxBtn) checkInboxBtn.disabled = true;
+      activityHint.textContent = runPoll ? 'Checking inbox…' : 'Loading activity…';
+      try {
+        const data = runPoll
+          ? await YonderlyAuth.pollGmailInbox()
+          : await YonderlyAuth.fetchGmailStatus();
+        gmailCache = { ...gmailCache, ...data, connected: Boolean(data.connected ?? gmailCache.connected) };
+        renderGmail(gmailCache);
+        if (runPoll && data.summary) {
+          const s = data.summary;
+          activityHint.textContent =
+            'Last check: ' + (s.processed || 0) + ' processed, ' +
+            (s.replied || 0) + ' replied, ' + (s.skipped || 0) + ' skipped.';
+        } else {
+          activityHint.textContent =
+            'Auto-refreshes every 10 minutes. Last updated: ' +
+            new Date().toLocaleTimeString() +
+            '. Click Refresh anytime for an instant check.';
+        }
+      } catch (err) {
+        activityHint.textContent = err.message || 'Could not refresh activity';
+      } finally {
+        refreshActivityBtn.disabled = false;
+        if (checkInboxBtn) checkInboxBtn.disabled = false;
+      }
+    }
+
+    checkInboxBtn.onclick = () => refreshEmailActivity(true);
+    refreshActivityBtn.onclick = () => refreshEmailActivity(true);
+
+    function startActivityAutoRefresh() {
+      if (activityRefreshTimer) clearInterval(activityRefreshTimer);
+      activityRefreshTimer = setInterval(() => {
+        if (!dashboardReady || !gmailCache.connected) return;
+        refreshEmailActivity(false);
+      }, ACTIVITY_REFRESH_MS);
+    }
 
     disconnectGmailBtn.onclick = async () => {
       if (!confirm('Disconnect Gmail? Yonderly will stop replying to your emails.')) return;
@@ -219,7 +553,7 @@
       const params = new URLSearchParams(location.search);
       const gmail = params.get('gmail');
       if (gmail === 'connected') {
-        gmailSuccess.textContent = 'Gmail connected successfully. Yonderly will start checking your inbox within 5 minutes.';
+        gmailSuccess.textContent = 'Gmail connected. Yonderly will check your inbox automatically every 10 minutes, 24/7.';
         gmailSuccess.style.display = 'block';
       } else if (gmail === 'error') {
         const reason = params.get('reason') || 'unknown';
@@ -301,19 +635,27 @@
       if (gmail.connected) {
         document.getElementById('stat-email').textContent = 'Connected';
         connectGmailBtn.style.display = 'none';
+        checkInboxBtn.style.display = 'inline-block';
         disconnectGmailBtn.style.display = 'inline-block';
-        gmailStatusText.textContent = 'Gmail is connected. Yonderly checks your inbox every 5 minutes.';
         const addr = gmail.connection?.gmail_address || '';
+        const loginEmail = (accountCache?.user?.email || '').toLowerCase();
+        const connectedEmail = addr.toLowerCase();
+        let statusLine = 'Gmail connected to ' + addr + '. Yonderly checks your inbox every 10 minutes automatically — no need to keep this page open.';
+        if (loginEmail && connectedEmail && loginEmail !== connectedEmail) {
+          statusLine += ' (You are signed in as ' + accountCache.user.email + ' — mail goes to ' + addr + '.)';
+        }
+        gmailStatusText.textContent = statusLine;
         const lastPoll = gmail.connection?.last_poll_at
           ? new Date(gmail.connection.last_poll_at).toLocaleString()
           : 'Not yet';
-        gmailMeta.textContent = addr ? ('Account: ' + addr + ' · Last check: ' + lastPoll) : '';
+        gmailMeta.textContent = 'Last check: ' + lastPoll;
         if (gmail.connection?.last_error) {
           gmailMeta.textContent += ' · Last error: ' + gmail.connection.last_error;
         }
       } else {
         document.getElementById('stat-email').textContent = 'Not connected';
         connectGmailBtn.style.display = 'inline-block';
+        checkInboxBtn.style.display = 'none';
         disconnectGmailBtn.style.display = 'none';
         gmailStatusText.textContent = 'Click Connect Gmail to authorize Yonderly. Replies run in the cloud — no local scripts.';
         gmailMeta.textContent = gmail.statusError ? ('Note: ' + gmail.statusError) : '';
@@ -326,7 +668,9 @@
       const canUse = account.isActive || !account.requireSubscription;
 
       if (!canUse) {
+        connectWaBtn.style.display = 'none';
         linkWaManualBtn.disabled = true;
+        waManualPanel.style.display = 'none';
         disconnectWaBtn.style.display = 'none';
         document.getElementById('stat-wa').textContent = 'Locked';
         waStatusText.textContent = 'Subscribe to unlock WhatsApp.';
@@ -334,26 +678,39 @@
       }
 
       if (!account.hasBusinessProfile) {
+        connectWaBtn.disabled = true;
         linkWaManualBtn.disabled = true;
+        waManualPanel.style.display = 'none';
         disconnectWaBtn.style.display = 'none';
         document.getElementById('stat-wa').textContent = 'Not set up';
+        waStatusText.textContent = 'Complete your business profile first, then connect WhatsApp.';
         return;
       }
 
       if (wa.connected && wa.connection) {
         document.getElementById('stat-wa').textContent = 'Connected';
+        connectWaBtn.style.display = 'none';
         waManualPanel.style.display = 'none';
         disconnectWaBtn.style.display = 'inline-block';
         const num = wa.connection.display_phone_number || wa.connection.phone_number_id;
-        waStatusText.textContent = 'Your WhatsApp number is linked. Customers message this number and Yonderly replies.';
-        waMeta.textContent = 'Linked number: ' + num + ' · ID: ' + wa.connection.phone_number_id;
+        waStatusText.textContent = 'Your WhatsApp number is linked. End customers message this number — not Meta IDs.';
+        waMeta.textContent = 'Linked number: ' + num;
       } else {
         document.getElementById('stat-wa').textContent = 'Not connected';
-        waManualPanel.style.display = 'block';
         disconnectWaBtn.style.display = 'none';
         linkWaManualBtn.disabled = false;
-        waStatusText.textContent = 'Paste IDs from Meta API Setup — forget Config ID.';
-        waMeta.textContent = 'Customers will text YOUR number, not the +1 555 test line.';
+        waManualPanel.style.display = 'block';
+
+        if (waEmbeddedConfig?.ready) {
+          connectWaBtn.style.display = 'inline-block';
+          connectWaBtn.disabled = false;
+          waStatusText.textContent = 'Use one-click Connect, or follow the 5 steps below.';
+          waMeta.textContent = 'Most businesses use the manual steps below — same result.';
+        } else {
+          connectWaBtn.style.display = 'none';
+          waStatusText.textContent = 'Follow the 5 steps below to connect your WhatsApp business number.';
+          waMeta.textContent = 'One-time setup. Your customers text your normal number — nothing changes for them.';
+        }
       }
     }
 
@@ -383,10 +740,11 @@
 
       if (account.hasBusinessProfile && account.businessProfile) {
         document.getElementById('stat-business').textContent = account.businessProfile.business_name;
-        setupBtn.textContent = 'Edit business profile';
+        menuProfileLink.textContent = 'Edit business profile';
         setupHint.style.display = 'none';
       } else {
         document.getElementById('stat-business').textContent = 'Not set up';
+        menuProfileLink.textContent = 'Set up business profile';
         setupHint.style.display = 'block';
       }
 
@@ -409,16 +767,29 @@
       }
 
       renderGmail(gmail);
+      gmailCache = { ...gmail };
 
       let wa = { connected: false, embeddedSignupReady: false };
+      try {
+        await loadWaEmbeddedConfig();
+        wa.embeddedSignupReady = Boolean(waEmbeddedConfig?.ready);
+      } catch (err) {
+        waMeta.textContent = err.message || 'Could not load WhatsApp settings';
+      }
+
       if ((account.isActive || !account.requireSubscription) && account.hasBusinessProfile) {
         try {
-          wa = await YonderlyAuth.fetchWhatsAppStatus();
+          wa = { ...wa, ...(await YonderlyAuth.fetchWhatsAppStatus()) };
+          wa.embeddedSignupReady = Boolean(waEmbeddedConfig?.ready);
         } catch (err) {
-          waMeta.textContent = err.message || 'Could not load WhatsApp status';
+          if (!waMeta.textContent) {
+            waMeta.textContent = err.message || 'Could not load WhatsApp status';
+          }
         }
       }
       renderWhatsApp(wa, account);
+      dashboardReady = true;
+      startActivityAutoRefresh();
     }
 
     boot().catch((err) => {

@@ -66,6 +66,20 @@ module.exports = async (req, res) => {
       supabaseUrl: url,
       supabase: { ok: supabaseResponse.ok, status: supabaseResponse.status },
       whatsapp,
+      embeddedSignup: {
+        metaAppId: process.env.META_APP_ID || process.env.WHATSAPP_APP_ID || '',
+        configIdSet: Boolean(
+          process.env.WHATSAPP_EMBEDDED_CONFIG_ID || process.env.META_EMBEDDED_CONFIG_ID
+        ),
+        ready: Boolean(
+          (process.env.META_APP_ID || process.env.WHATSAPP_APP_ID) &&
+          (process.env.WHATSAPP_EMBEDDED_CONFIG_ID || process.env.META_EMBEDDED_CONFIG_ID)
+        ),
+      },
+      emailCron: {
+        secretConfigured: Boolean(process.env.CRON_SECRET),
+        note: 'GitHub Actions workflow email-poll.yml hits /api/cron/email-poll every 10 minutes',
+      },
     });
   } catch (err) {
     return res.status(503).json({
