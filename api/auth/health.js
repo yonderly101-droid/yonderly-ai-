@@ -1,5 +1,47 @@
 const { supabaseUrl, supabaseAnonKey, setCors } = require('../../lib/supabase-server');
 
+const GRAPH_API = 'https://graph.facebook.com/v21.0';
+
+async function checkWhatsAppToken() {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN || '';
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+
+  if (!token || !phoneNumberId) {
+    return {
+      ok: false,
+      configured: false,
+      error: 'WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID not set on Vercel',
+    };
+  }
+
+  try {
+    const response = await fetch(`${GRAPH_API}/${phoneNumberId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const message = data?.error?.message || 'Meta API rejected the token';
+      const expired = data?.error?.code === 190;
+      return {
+        ok: false,
+        configured: true,
+        expired,
+        error: message,
+        fix: expired
+          ? 'Meta → WhatsApp → API Setup → Generate access token → update WHATSAPP_ACCESS_TOKEN on Vercel → redeploy'
+          : 'Check WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID on Vercel',
+      };
+    }
+    return {
+      ok: true,
+      configured: true,
+      phone: data.display_phone_number || null,
+    };
+  } catch (err) {
+    return { ok: false, configured: true, error: err.message || 'Token check failed' };
+  }
+}
+
 module.exports = async (req, res) => {
   if (setCors(req, res)) return;
   if (req.method !== 'GET') {
@@ -12,13 +54,18 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const response = await fetch(`${url}/auth/v1/health`, {
-      headers: { apikey: supabaseAnonKey() },
-    });
+    const [supabaseResponse, whatsapp] = await Promise.all([
+      fetch(`${url}/auth/v1/health`, {
+        headers: { apikey: supabaseAnonKey() },
+      }),
+      checkWhatsAppToken(),
+    ]);
+
     return res.status(200).json({
-      ok: response.ok,
+      ok: supabaseResponse.ok && whatsapp.ok,
       supabaseUrl: url,
-      status: response.status,
+      supabase: { ok: supabaseResponse.ok, status: supabaseResponse.status },
+      whatsapp,
     });
   } catch (err) {
     return res.status(503).json({
