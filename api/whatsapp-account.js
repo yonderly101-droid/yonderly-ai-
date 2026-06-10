@@ -54,11 +54,11 @@ async function handleComplete(req, res) {
   }
 
   const body = parseBody(req);
-  const phoneNumberId = String(body.phone_number_id || '').trim();
-  const wabaId = String(body.waba_id || '').trim();
+  const phoneNumberId = String(body.phone_number_id || '').replace(/\D/g, '');
+  const wabaId = String(body.waba_id || '').replace(/\D/g, '');
 
-  if (!phoneNumberId || !wabaId) {
-    return res.status(400).json({ error: 'Missing phone_number_id or waba_id from Meta signup' });
+  if (!phoneNumberId) {
+    return res.status(400).json({ error: 'Phone number ID is required (from Meta → WhatsApp → API Setup)' });
   }
 
   const existing = await supabaseRest(
@@ -77,12 +77,14 @@ async function handleComplete(req, res) {
     displayPhone = String(body.display_phone_number || '').trim();
   }
 
-  try {
-    await subscribeWabaToApp(wabaId);
-  } catch (err) {
-    return res.status(502).json({
-      error: 'Could not register WhatsApp with Meta: ' + (err.message || 'subscribe failed'),
-    });
+  if (wabaId) {
+    try {
+      await subscribeWabaToApp(wabaId);
+    } catch (err) {
+      return res.status(502).json({
+        error: 'Could not register WhatsApp with Meta: ' + (err.message || 'subscribe failed'),
+      });
+    }
   }
 
   await supabaseRest('whatsapp_connections?on_conflict=user_id', {

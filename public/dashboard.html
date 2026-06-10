@@ -88,10 +88,25 @@
 
       <div class="card">
         <h2>WhatsApp</h2>
-        <p id="wa-status-text">Connect your own WhatsApp Business number — customers message you, not a shared test line.</p>
-        <div class="actions">
-          <button class="btn primary" id="connect-wa-btn">Connect WhatsApp</button>
-          <button class="btn danger" id="disconnect-wa-btn" style="display:none">Disconnect</button>
+        <p id="wa-status-text">Link your own WhatsApp Business number. No Config ID needed.</p>
+        <div id="wa-manual-panel">
+          <label for="wa-phone-number-id" style="font-size:.85rem;color:var(--muted)">Phone number ID</label>
+          <input type="text" id="wa-phone-number-id" placeholder="e.g. 1137266636139583" inputmode="numeric">
+          <label for="wa-waba-id" style="font-size:.85rem;color:var(--muted);margin-top:10px;display:block">WhatsApp Business Account ID (optional)</label>
+          <input type="text" id="wa-waba-id" placeholder="e.g. 123456789012345" inputmode="numeric">
+          <div class="actions">
+            <button class="btn primary" id="link-wa-manual-btn">Link my WhatsApp number</button>
+            <button class="btn danger" id="disconnect-wa-btn" style="display:none">Disconnect</button>
+          </div>
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;color:var(--accent)">Where do I find these IDs?</summary>
+            <ol style="margin-top:10px;font-size:.85rem">
+              <li>Go to <a href="https://developers.facebook.com/apps/2030984981156393/whatsapp-business/wa-dev-console/" target="_blank" rel="noopener" style="color:#6c8cff">Meta → WhatsApp → API Setup</a></li>
+              <li>Copy <strong>Phone number ID</strong> (under your number)</li>
+              <li>Copy <strong>WhatsApp Business Account ID</strong> if shown (optional but recommended)</li>
+              <li>Paste above → click <strong>Link my WhatsApp number</strong></li>
+            </ol>
+          </details>
         </div>
         <p id="wa-meta" style="margin-top:12px;font-size:.85rem;color:var(--muted)"></p>
       </div>
@@ -133,12 +148,13 @@
     const gmailError = document.getElementById('gmail-error');
     const waStatusText = document.getElementById('wa-status-text');
     const waMeta = document.getElementById('wa-meta');
-    const connectWaBtn = document.getElementById('connect-wa-btn');
     const disconnectWaBtn = document.getElementById('disconnect-wa-btn');
+    const linkWaManualBtn = document.getElementById('link-wa-manual-btn');
+    const waManualPanel = document.getElementById('wa-manual-panel');
+    const waPhoneNumberIdInput = document.getElementById('wa-phone-number-id');
+    const waWabaIdInput = document.getElementById('wa-waba-id');
 
     let accountCache = null;
-    let waSignupCode = null;
-    let waSessionListener = null;
 
     document.getElementById('signout-btn').onclick = () => YonderlyAuth.signOut();
 
@@ -162,92 +178,28 @@
       }
     };
 
-    function loadFacebookSdk(appId) {
-      return new Promise((resolve, reject) => {
-        if (window.FB) {
-          window.FB.init({ appId, cookie: true, xfbml: false, version: 'v21.0' });
-          resolve(window.FB);
-          return;
-        }
-        window.fbAsyncInit = function () {
-          window.FB.init({ appId, cookie: true, xfbml: false, version: 'v21.0' });
-          resolve(window.FB);
-        };
-        if (!document.getElementById('facebook-jssdk')) {
-          const script = document.createElement('script');
-          script.id = 'facebook-jssdk';
-          script.async = true;
-          script.defer = true;
-          script.crossOrigin = 'anonymous';
-          script.src = 'https://connect.facebook.net/en_US/sdk.js';
-          script.onerror = () => reject(new Error('Could not load Facebook SDK'));
-          document.body.appendChild(script);
-        }
-      });
-    }
-
-    function cleanupWaSignupListener() {
-      if (waSessionListener) {
-        window.removeEventListener('message', waSessionListener);
-        waSessionListener = null;
-      }
-    }
-
-    connectWaBtn.onclick = async () => {
+    linkWaManualBtn.onclick = async () => {
       if (!accountCache?.hasBusinessProfile) {
         alert('Complete your business profile first.');
         location.href = '/onboarding';
         return;
       }
-      connectWaBtn.disabled = true;
-      waSignupCode = null;
-      cleanupWaSignupListener();
-
+      const phoneNumberId = waPhoneNumberIdInput.value.replace(/\D/g, '');
+      const wabaId = waWabaIdInput.value.replace(/\D/g, '');
+      if (!phoneNumberId) {
+        alert('Paste your Phone number ID from Meta → WhatsApp → API Setup');
+        return;
+      }
+      linkWaManualBtn.disabled = true;
       try {
-        const waConfig = await YonderlyAuth.fetchWhatsAppConfig();
-        if (!waConfig.ready) {
-          throw new Error('WhatsApp signup is not configured yet. Ask support to enable Meta Embedded Signup.');
-        }
-
-        waSessionListener = function (event) {
-          if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return;
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type !== 'WA_EMBEDDED_SIGNUP') return;
-            if (data.event === 'FINISH' && data.data) {
-              YonderlyAuth.completeWhatsAppSignup({
-                phone_number_id: data.data.phone_number_id,
-                waba_id: data.data.waba_id,
-              }).then(() => {
-                cleanupWaSignupListener();
-                location.reload();
-              }).catch((err) => {
-                connectWaBtn.disabled = false;
-                alert(err.message || 'WhatsApp connect failed');
-              });
-            } else if (data.event === 'CANCEL') {
-              connectWaBtn.disabled = false;
-              cleanupWaSignupListener();
-            }
-          } catch {
-            // ignore non-json postMessage
-          }
-        };
-        window.addEventListener('message', waSessionListener);
-
-        const FB = await loadFacebookSdk(waConfig.metaAppId);
-        FB.login(function () {
-          // Auth code optional for platform-token model; signup data comes via postMessage
-        }, {
-          config_id: waConfig.embeddedConfigId,
-          response_type: 'code',
-          override_default_response_type: true,
-          extras: { setup: {}, featureType: '', sessionInfoVersion: 2 },
+        await YonderlyAuth.completeWhatsAppSignup({
+          phone_number_id: phoneNumberId,
+          waba_id: wabaId,
         });
+        location.reload();
       } catch (err) {
-        connectWaBtn.disabled = false;
-        cleanupWaSignupListener();
-        alert(err.message || 'Could not start WhatsApp connect');
+        alert(err.message || 'Could not link WhatsApp');
+        linkWaManualBtn.disabled = false;
       }
     };
 
@@ -321,7 +273,7 @@
 
     function setChannelButtonsEnabled(enabled, reason) {
       connectGmailBtn.disabled = !enabled;
-      connectWaBtn.disabled = !enabled;
+      if (linkWaManualBtn) linkWaManualBtn.disabled = !enabled;
       if (!enabled && reason) {
         gmailStatusText.textContent = reason;
         waStatusText.textContent = reason;
@@ -374,41 +326,34 @@
       const canUse = account.isActive || !account.requireSubscription;
 
       if (!canUse) {
-        connectWaBtn.style.display = 'inline-block';
+        linkWaManualBtn.disabled = true;
         disconnectWaBtn.style.display = 'none';
-        connectWaBtn.disabled = true;
         document.getElementById('stat-wa').textContent = 'Locked';
         waStatusText.textContent = 'Subscribe to unlock WhatsApp.';
         return;
       }
 
       if (!account.hasBusinessProfile) {
-        connectWaBtn.style.display = 'inline-block';
+        linkWaManualBtn.disabled = true;
         disconnectWaBtn.style.display = 'none';
-        connectWaBtn.disabled = true;
         document.getElementById('stat-wa').textContent = 'Not set up';
         return;
       }
 
       if (wa.connected && wa.connection) {
         document.getElementById('stat-wa').textContent = 'Connected';
-        connectWaBtn.style.display = 'none';
+        waManualPanel.style.display = 'none';
         disconnectWaBtn.style.display = 'inline-block';
         const num = wa.connection.display_phone_number || wa.connection.phone_number_id;
-        waStatusText.textContent = 'Your WhatsApp Business number is live. Customers can message you directly.';
-        waMeta.textContent = 'Your number: ' + num;
+        waStatusText.textContent = 'Your WhatsApp number is linked. Customers message this number and Yonderly replies.';
+        waMeta.textContent = 'Linked number: ' + num + ' · ID: ' + wa.connection.phone_number_id;
       } else {
         document.getElementById('stat-wa').textContent = 'Not connected';
-        connectWaBtn.style.display = 'inline-block';
+        waManualPanel.style.display = 'block';
         disconnectWaBtn.style.display = 'none';
-        connectWaBtn.disabled = !wa.embeddedSignupReady;
-        if (wa.embeddedSignupReady) {
-          waStatusText.textContent = 'Click Connect WhatsApp to link your business number through Meta.';
-          waMeta.textContent = 'Takes about 2 minutes. You keep your own number — not a shared test line.';
-        } else {
-          waStatusText.textContent = 'WhatsApp connect is being enabled for your account.';
-          waMeta.textContent = 'Meta Embedded Signup must be configured on the server first.';
-        }
+        linkWaManualBtn.disabled = false;
+        waStatusText.textContent = 'Paste IDs from Meta API Setup — forget Config ID.';
+        waMeta.textContent = 'Customers will text YOUR number, not the +1 555 test line.';
       }
     }
 
