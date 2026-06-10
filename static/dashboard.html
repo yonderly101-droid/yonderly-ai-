@@ -159,7 +159,7 @@
         <div class="activity-toolbar">
           <div>
             <h2 style="margin:0">Recent activity</h2>
-            <p style="margin:6px 0 0;font-size:.85rem" id="activity-hint">Auto-refreshes every 10 minutes. Click Refresh anytime for an instant check.</p>
+            <p style="margin:6px 0 0;font-size:.85rem" id="activity-hint">Cloud inbox checks every 5 minutes, 24/7. This page also auto-checks while open.</p>
           </div>
           <button type="button" class="btn secondary" id="refresh-activity-btn">Refresh</button>
         </div>
@@ -207,7 +207,7 @@
     let waSignupPending = false;
     let dashboardReady = false;
     let gmailCache = { connected: false, recentMessages: [] };
-    const ACTIVITY_REFRESH_MS = 10 * 60 * 1000;
+    const ACTIVITY_REFRESH_MS = 3 * 60 * 1000;
     let activityRefreshTimer = null;
 
     function switchTab(name) {
@@ -473,11 +473,13 @@
         if (runPoll && data.summary) {
           const s = data.summary;
           activityHint.textContent =
-            'Last check: ' + (s.processed || 0) + ' processed, ' +
-            (s.replied || 0) + ' replied, ' + (s.skipped || 0) + ' skipped.';
+            'Cloud checks every 5 minutes. Last check: ' +
+            (s.processed || 0) + ' processed, ' +
+            (s.replied || 0) + ' replied, ' +
+            (s.skipped || 0) + ' skipped.';
         } else {
           activityHint.textContent =
-            'Auto-refreshes every 10 minutes. Last updated: ' +
+            'Cloud checks every 5 minutes, 24/7. Last updated: ' +
             new Date().toLocaleTimeString() +
             '. Click Refresh anytime for an instant check.';
         }
@@ -496,7 +498,7 @@
       if (activityRefreshTimer) clearInterval(activityRefreshTimer);
       activityRefreshTimer = setInterval(() => {
         if (!dashboardReady || !gmailCache.connected) return;
-        refreshEmailActivity(false);
+        refreshEmailActivity(true);
       }, ACTIVITY_REFRESH_MS);
     }
 
@@ -553,7 +555,7 @@
       const params = new URLSearchParams(location.search);
       const gmail = params.get('gmail');
       if (gmail === 'connected') {
-        gmailSuccess.textContent = 'Gmail connected. Yonderly will check your inbox automatically every 10 minutes, 24/7.';
+        gmailSuccess.textContent = 'Gmail connected. Yonderly checks your inbox every 5 minutes automatically, 24/7.';
         gmailSuccess.style.display = 'block';
       } else if (gmail === 'error') {
         const reason = params.get('reason') || 'unknown';
@@ -640,7 +642,7 @@
         const addr = gmail.connection?.gmail_address || '';
         const loginEmail = (accountCache?.user?.email || '').toLowerCase();
         const connectedEmail = addr.toLowerCase();
-        let statusLine = 'Gmail connected to ' + addr + '. Yonderly checks your inbox every 10 minutes automatically — no need to keep this page open.';
+        let statusLine = 'Gmail connected to ' + addr + '. Yonderly checks your inbox every 5 minutes automatically — no need to keep this page open.';
         if (loginEmail && connectedEmail && loginEmail !== connectedEmail) {
           statusLine += ' (You are signed in as ' + accountCache.user.email + ' — mail goes to ' + addr + '.)';
         }

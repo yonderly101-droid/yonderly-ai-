@@ -78,7 +78,9 @@ module.exports = async (req, res) => {
       },
       emailCron: {
         secretConfigured: Boolean(process.env.CRON_SECRET),
-        note: 'GitHub Actions workflow email-poll.yml hits /api/cron/email-poll every 10 minutes',
+        githubActionsOidc: true,
+        scheduleMinutes: 5,
+        note: 'GitHub Actions hits /api/cron/email-poll every 5 minutes via OIDC (no GitHub secret required)',
       },
     });
   } catch (err) {

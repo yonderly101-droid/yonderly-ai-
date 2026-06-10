@@ -1,4 +1,5 @@
 const { getUserFromRequest, supabaseRest, setCors } = require('../lib/supabase-server');
+const { processEmailForUser } = require('../lib/email-agent');
 const {
   buildAuthUrl,
   verifyOAuthState,
@@ -14,7 +15,35 @@ function gmailAction(req) {
   if (path.endsWith('/callback')) return 'callback';
   if (path.endsWith('/status')) return 'status';
   if (path.endsWith('/disconnect')) return 'disconnect';
+  if (path.endsWith('/poll')) return 'poll';
   return '';
+}
+
+const BACKGROUND_POLL_STALE_MS = 4 * 60 * 1000;
+
+async function maybePollInBackground(userId, connectionSummary) {
+  if (!connectionSummary?.gmail_address || connectionSummary.enabled === false) return;
+
+  const lastPoll = connectionSummary.last_poll_at
+    ? new Date(connectionSummary.last_poll_at).getTime()
+    : 0;
+  if (Date.now() - lastPoll < BACKGROUND_POLL_STALE_MS) return;
+
+  const connections = await supabaseRest(
+    `gmail_connections?user_id=eq.${userId}&enabled=eq.true&select=*`,
+    { useServiceRole: true }
+  );
+  const connection = Array.isArray(connections) ? connections[0] : null;
+  if (!connection?.gmail_address) return;
+
+  const profiles = await supabaseRest(
+    `user_business_profiles?user_id=eq.${userId}&select=*`,
+    { useServiceRole: true }
+  );
+  const businessProfile = Array.isArray(profiles) ? profiles[0] : null;
+  if (!businessProfile?.business_name) return;
+
+  await processEmailForUser(connection, businessProfile);
 }
 
 async function handleConnect(req, res) {
@@ -88,6 +117,29 @@ async function handleCallback(req, res) {
     },
   });
 
+  try {
+    const profiles = await supabaseRest(
+      `user_business_profiles?user_id=eq.${userId}&select=*`,
+      { useServiceRole: true }
+    );
+    const profile = Array.isArray(profiles) ? profiles[0] : null;
+    if (profile?.business_name) {
+      await processEmailForUser(
+        {
+          user_id: userId,
+          gmail_address: gmailAddress,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          token_expires_at: tokenExpiresAt,
+          enabled: true,
+        },
+        profile
+      );
+    }
+  } catch {
+    // First poll is best-effort; scheduled cron handles ongoing checks
+  }
+
   return res.redirect(302, `${dashboard}?gmail=connected`);
 }
 
@@ -102,25 +154,27 @@ async function handleStatus(req, res) {
     return res.status(401).json({ error: 'Not signed in' });
   }
 
-  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-
   const [connections, messages] = await Promise.all([
     supabaseRest(
       `gmail_connections?user_id=eq.${user.id}&select=gmail_address,enabled,last_poll_at,last_error,created_at,updated_at`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { useServiceRole: true }
     ),
     supabaseRest(
-      `email_messages?user_id=eq.${user.id}&select=id,customer_name,customer_email,subject,status,created_at&order=created_at.desc&limit=10`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      `email_messages?user_id=eq.${user.id}&select=id,customer_name,customer_email,subject,status,created_at&order=created_at.desc&limit=20`,
+      { useServiceRole: true }
     ),
   ]);
 
   const connection = Array.isArray(connections) ? connections[0] : null;
 
+  maybePollInBackground(user.id, connection).catch(() => {});
+
   return res.status(200).json({
     connected: Boolean(connection?.gmail_address),
     connection: connection || null,
     recentMessages: Array.isArray(messages) ? messages : [],
+    pollHint:
+      'Send to the connected Gmail address from a different email. Leave it unread, or click Refresh — we also scan recent inbox mail not yet logged.',
   });
 }
 
@@ -143,6 +197,56 @@ async function handleDisconnect(req, res) {
   return res.status(200).json({ success: true });
 }
 
+async function handlePoll(req, res) {
+  if (setCors(req, res)) return;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const user = await getUserFromRequest(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Not signed in' });
+  }
+
+  const connections = await supabaseRest(
+    `gmail_connections?user_id=eq.${user.id}&enabled=eq.true&select=*`,
+    { useServiceRole: true }
+  );
+  const connection = Array.isArray(connections) ? connections[0] : null;
+  if (!connection?.gmail_address) {
+    return res.status(400).json({ error: 'Connect Gmail first' });
+  }
+
+  const profiles = await supabaseRest(
+    `user_business_profiles?user_id=eq.${user.id}&select=*`,
+    { useServiceRole: true }
+  );
+  const businessProfile = Array.isArray(profiles) ? profiles[0] : null;
+  if (!businessProfile?.business_name) {
+    return res.status(400).json({ error: 'Complete your business profile first' });
+  }
+
+  const summary = await processEmailForUser(connection, businessProfile);
+
+  const messages = await supabaseRest(
+    `email_messages?user_id=eq.${user.id}&select=id,customer_name,customer_email,subject,status,created_at&order=created_at.desc&limit=20`,
+    { useServiceRole: true }
+  );
+
+  const updatedConnections = await supabaseRest(
+    `gmail_connections?user_id=eq.${user.id}&select=gmail_address,enabled,last_poll_at,last_error,created_at,updated_at`,
+    { useServiceRole: true }
+  );
+  const updatedConnection = Array.isArray(updatedConnections) ? updatedConnections[0] : null;
+
+  return res.status(200).json({
+    summary,
+    connected: true,
+    connection: updatedConnection || null,
+    recentMessages: Array.isArray(messages) ? messages : [],
+  });
+}
+
 module.exports = async (req, res) => {
   try {
     const action = gmailAction(req);
@@ -150,6 +254,7 @@ module.exports = async (req, res) => {
     if (action === 'callback') return handleCallback(req, res);
     if (action === 'status') return handleStatus(req, res);
     if (action === 'disconnect') return handleDisconnect(req, res);
+    if (action === 'poll') return handlePoll(req, res);
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {
     if (gmailAction(req) === 'callback') {
