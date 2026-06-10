@@ -173,6 +173,42 @@
     return data;
   }
 
+  async function connectGmail() {
+    const session = await getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch('/api/gmail/connect', {
+      headers: { Authorization: 'Bearer ' + session.access_token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not start Gmail connect');
+    global.location.href = data.url;
+  }
+
+  async function fetchGmailStatus() {
+    const session = await getSession();
+    if (!session) return null;
+    const res = await fetch('/api/gmail/status', {
+      headers: { Authorization: 'Bearer ' + session.access_token },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Could not load Gmail status');
+    }
+    return res.json();
+  }
+
+  async function disconnectGmail() {
+    const session = await getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch('/api/gmail/disconnect', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + session.access_token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Disconnect failed');
+    return data;
+  }
+
   global.YonderlyAuth = {
     loadConfig,
     getClient,
@@ -186,6 +222,9 @@
     fetchAccount,
     activateSubscription,
     saveProfile,
+    connectGmail,
+    fetchGmailStatus,
+    disconnectGmail,
     authErrorMessage,
   };
 })(window);

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Yonderly — Dashboard</title>
   <style>
-    :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#9aa8bc; --accent:#6c8cff; --border:#2a3648; --ok:#34d399; --warn:#fbbf24; }
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#9aa8bc; --accent:#6c8cff; --border:#2a3648; --ok:#34d399; --warn:#fbbf24; --err:#f87171; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); }
     .wrap { max-width:960px; margin:0 auto; padding:24px; }
@@ -21,11 +21,20 @@
     h2 { margin:0 0 12px; font-size:1.1rem; }
     p { color:var(--muted); line-height:1.5; }
     .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
-    a.btn, button.btn { display:inline-block; padding:10px 14px; border-radius:10px; text-decoration:none; font-weight:600; border:none; cursor:pointer; }
+    a.btn, button.btn { display:inline-block; padding:10px 14px; border-radius:10px; text-decoration:none; font-weight:600; border:none; cursor:pointer; font-size:.95rem; }
     a.primary, button.primary { background:var(--accent); color:#fff; }
     a.secondary, button.secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
+    button.danger { background:transparent; border:1px solid #7f1d1d; color:var(--err); }
     .alert { padding:14px; border-radius:10px; margin-bottom:16px; background:#2a2411; border:1px solid #7a5d12; color:#fde68a; }
+    .alert.ok { background:#10231c; border-color:#1f6f55; color:#a7f3d0; }
+    .alert.err { background:#2a1515; border-color:#7f1d1d; color:#fecaca; }
     #paypal-button-container { max-width:320px; margin-top:12px; }
+    table { width:100%; border-collapse:collapse; font-size:.9rem; }
+    th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-weight:600; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem; border:1px solid var(--border); }
+    .pill.replied { color:var(--ok); border-color:#1f6f55; }
+    .pill.skipped { color:var(--muted); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -44,6 +53,9 @@
       <div id="paypal-button-container"></div>
     </div>
 
+    <div class="alert ok" id="gmail-success" style="display:none"></div>
+    <div class="alert err" id="gmail-error" style="display:none"></div>
+
     <div class="grid">
       <div class="card"><div class="stat" id="stat-email">—</div><div class="label">Email channel</div></div>
       <div class="card"><div class="stat" id="stat-wa">Live</div><div class="label">WhatsApp (when configured)</div></div>
@@ -60,9 +72,30 @@
     </div>
 
     <div class="card" style="margin-top:16px">
+      <h2>Gmail</h2>
+      <p id="gmail-status-text">Connect your business Gmail so Yonderly can read and reply to customer emails in the cloud — no local scripts.</p>
+      <div class="actions">
+        <button class="btn primary" id="connect-gmail-btn" style="display:none">Connect Gmail</button>
+        <button class="btn danger" id="disconnect-gmail-btn" style="display:none">Disconnect</button>
+      </div>
+      <p id="gmail-meta" style="margin-top:12px;font-size:.85rem"></p>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>Recent email activity</h2>
+      <p id="email-empty">No emails handled yet.</p>
+      <table id="email-table" style="display:none">
+        <thead>
+          <tr><th>When</th><th>From</th><th>Subject</th><th>Status</th></tr>
+        </thead>
+        <tbody id="email-rows"></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top:16px">
       <h2>How it works</h2>
-      <p>1. Subscribe → 2. Complete onboarding → 3. Connect email/WhatsApp → 4. Yonderly replies automatically.</p>
-      <p>Email approval mode and per-channel setup are configured from your business profile and integrations.</p>
+      <p>1. Complete onboarding → 2. Connect Gmail → 3. Yonderly checks your inbox every 5 minutes and replies automatically.</p>
+      <p>Newsletters and marketing emails are skipped. Real customer emails get an AI reply signed with your business name.</p>
     </div>
   </div>
 
@@ -72,8 +105,50 @@
     const statusBadge = document.getElementById('status-badge');
     const welcomeText = document.getElementById('welcome-text');
     const setupBtn = document.getElementById('setup-btn');
+    const connectGmailBtn = document.getElementById('connect-gmail-btn');
+    const disconnectGmailBtn = document.getElementById('disconnect-gmail-btn');
+    const gmailStatusText = document.getElementById('gmail-status-text');
+    const gmailMeta = document.getElementById('gmail-meta');
+    const gmailSuccess = document.getElementById('gmail-success');
+    const gmailError = document.getElementById('gmail-error');
 
     document.getElementById('signout-btn').onclick = () => YonderlyAuth.signOut();
+
+    connectGmailBtn.onclick = () => {
+      connectGmailBtn.disabled = true;
+      YonderlyAuth.connectGmail().catch((err) => {
+        connectGmailBtn.disabled = false;
+        alert(err.message || 'Could not connect Gmail');
+      });
+    };
+
+    disconnectGmailBtn.onclick = async () => {
+      if (!confirm('Disconnect Gmail? Yonderly will stop replying to your emails.')) return;
+      disconnectGmailBtn.disabled = true;
+      try {
+        await YonderlyAuth.disconnectGmail();
+        location.reload();
+      } catch (err) {
+        disconnectGmailBtn.disabled = false;
+        alert(err.message || 'Disconnect failed');
+      }
+    };
+
+    function showGmailQueryMessages() {
+      const params = new URLSearchParams(location.search);
+      const gmail = params.get('gmail');
+      if (gmail === 'connected') {
+        gmailSuccess.textContent = 'Gmail connected successfully. Yonderly will start checking your inbox within 5 minutes.';
+        gmailSuccess.style.display = 'block';
+      } else if (gmail === 'error') {
+        const reason = params.get('reason') || 'unknown';
+        gmailError.textContent = 'Gmail connection failed: ' + reason.replace(/_/g, ' ');
+        gmailError.style.display = 'block';
+      }
+      if (gmail && history.replaceState) {
+        history.replaceState({}, '', location.pathname);
+      }
+    }
 
     async function initPayPal() {
       const config = await YonderlyAuth.loadConfig();
@@ -94,7 +169,62 @@
       document.body.appendChild(script);
     }
 
+    function renderEmailActivity(recentMessages) {
+      const empty = document.getElementById('email-empty');
+      const table = document.getElementById('email-table');
+      const rows = document.getElementById('email-rows');
+      if (!recentMessages || !recentMessages.length) {
+        empty.style.display = 'block';
+        table.style.display = 'none';
+        return;
+      }
+      empty.style.display = 'none';
+      table.style.display = 'table';
+      rows.innerHTML = recentMessages.map((msg) => {
+        const when = new Date(msg.created_at).toLocaleString();
+        const from = msg.customer_name || msg.customer_email || 'Unknown';
+        const statusClass = msg.status === 'replied' ? 'replied' : 'skipped';
+        return '<tr><td>' + when + '</td><td>' + from + '</td><td>' +
+          (msg.subject || '(no subject)') + '</td><td><span class="pill ' + statusClass + '">' +
+          msg.status + '</span></td></tr>';
+      }).join('');
+    }
+
+    function renderGmail(gmail) {
+      const canUse = gmail.canUseEmail;
+      if (!canUse) {
+        connectGmailBtn.style.display = 'none';
+        disconnectGmailBtn.style.display = 'none';
+        gmailStatusText.textContent = 'Subscribe or use test mode, then complete your business profile before connecting Gmail.';
+        return;
+      }
+
+      if (gmail.connected) {
+        document.getElementById('stat-email').textContent = 'Connected';
+        connectGmailBtn.style.display = 'none';
+        disconnectGmailBtn.style.display = 'inline-block';
+        gmailStatusText.textContent = 'Gmail is connected. Yonderly checks your inbox every 5 minutes.';
+        const addr = gmail.connection?.gmail_address || '';
+        const lastPoll = gmail.connection?.last_poll_at
+          ? new Date(gmail.connection.last_poll_at).toLocaleString()
+          : 'Not yet';
+        gmailMeta.textContent = addr ? ('Account: ' + addr + ' · Last check: ' + lastPoll) : '';
+        if (gmail.connection?.last_error) {
+          gmailMeta.textContent += ' · Last error: ' + gmail.connection.last_error;
+        }
+      } else {
+        document.getElementById('stat-email').textContent = 'Not connected';
+        connectGmailBtn.style.display = 'inline-block';
+        disconnectGmailBtn.style.display = 'none';
+        gmailStatusText.textContent = 'Connect your business Gmail. Replies run entirely in the cloud — nothing to install locally.';
+        gmailMeta.textContent = '';
+      }
+
+      renderEmailActivity(gmail.recentMessages);
+    }
+
     async function boot() {
+      showGmailQueryMessages();
       const session = await YonderlyAuth.requireSession('/dashboard');
       if (!session) return;
 
@@ -124,8 +254,18 @@
         document.getElementById('stat-business').textContent = 'Not set up';
       }
 
-      document.getElementById('stat-email').textContent =
-        account.isActive || !account.requireSubscription ? 'Ready' : 'Locked';
+      const canUseEmail = account.isActive || !account.requireSubscription;
+      let gmail = { connected: false, recentMessages: [], canUseEmail };
+      if (canUseEmail && account.hasBusinessProfile) {
+        try {
+          const status = await YonderlyAuth.fetchGmailStatus();
+          gmail = { ...status, canUseEmail: true };
+        } catch (err) {
+          gmailStatusText.textContent = err.message || 'Could not load Gmail status';
+        }
+      }
+
+      renderGmail(gmail);
     }
 
     boot().catch((err) => {
