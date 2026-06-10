@@ -209,6 +209,58 @@
     return data;
   }
 
+  async function fetchWhatsAppConfig() {
+    const session = await getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch('/api/whatsapp/config', {
+      headers: { Authorization: 'Bearer ' + session.access_token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not load WhatsApp config');
+    return data;
+  }
+
+  async function fetchWhatsAppStatus() {
+    const session = await getSession();
+    if (!session) return null;
+    const res = await fetch('/api/whatsapp/status', {
+      headers: { Authorization: 'Bearer ' + session.access_token },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Could not load WhatsApp status');
+    }
+    return res.json();
+  }
+
+  async function completeWhatsAppSignup(payload) {
+    const session = await getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch('/api/whatsapp/complete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + session.access_token,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'WhatsApp connect failed');
+    return data;
+  }
+
+  async function disconnectWhatsApp() {
+    const session = await getSession();
+    if (!session) throw new Error('Not signed in');
+    const res = await fetch('/api/whatsapp/disconnect', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + session.access_token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Disconnect failed');
+    return data;
+  }
+
   global.YonderlyAuth = {
     loadConfig,
     getClient,
@@ -225,6 +277,10 @@
     connectGmail,
     fetchGmailStatus,
     disconnectGmail,
+    fetchWhatsAppConfig,
+    fetchWhatsAppStatus,
+    completeWhatsAppSignup,
+    disconnectWhatsApp,
     authErrorMessage,
   };
 })(window);

@@ -112,6 +112,9 @@ async function handleRequest(req, res) {
     supabaseAnonKey: anon,
     supabasePublishableKey: publishable || anon,
     requireSubscription: process.env.REQUIRE_SUBSCRIPTION === 'true',
+    metaAppId: process.env.META_APP_ID || process.env.WHATSAPP_APP_ID || '',
+    whatsappEmbeddedConfigId:
+      process.env.WHATSAPP_EMBEDDED_CONFIG_ID || process.env.META_EMBEDDED_CONFIG_ID || '',
   });
 }
 

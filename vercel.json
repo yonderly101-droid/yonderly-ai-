@@ -20,6 +20,10 @@
     { "source": "/api/gmail/callback", "destination": "/api/gmail" },
     { "source": "/api/gmail/status", "destination": "/api/gmail" },
     { "source": "/api/gmail/disconnect", "destination": "/api/gmail" },
-    { "source": "/api/cron/email-poll", "destination": "/api/cron/email-poll" }
+    { "source": "/api/cron/email-poll", "destination": "/api/cron/email-poll" },
+    { "source": "/api/whatsapp/config", "destination": "/api/whatsapp-account" },
+    { "source": "/api/whatsapp/complete", "destination": "/api/whatsapp-account" },
+    { "source": "/api/whatsapp/status", "destination": "/api/whatsapp-account" },
+    { "source": "/api/whatsapp/disconnect", "destination": "/api/whatsapp-account" }
   ]
 }
