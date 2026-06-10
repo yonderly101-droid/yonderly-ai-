@@ -3,6 +3,7 @@ const {
   parseBody,
   supabaseRest,
   setCors,
+  subscriptionRequired,
 } = require('../../lib/supabase-server');
 
 const TONES = new Set(['professional', 'friendly', 'casual']);
@@ -44,7 +45,7 @@ module.exports = async (req, res) => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const subscription = Array.isArray(subs) ? subs[0] : null;
-    if (!subscription || subscription.status !== 'active') {
+    if (subscriptionRequired() && (!subscription || subscription.status !== 'active')) {
       return res.status(403).json({ error: 'Active subscription required' });
     }
 

@@ -64,7 +64,7 @@
       const session = await YonderlyAuth.requireSession('/onboarding');
       if (!session) return;
       const account = await YonderlyAuth.fetchAccount();
-      if (!account.isActive) {
+      if (account.requireSubscription && !account.isActive) {
         location.href = '/dashboard?billing=required';
         return;
       }

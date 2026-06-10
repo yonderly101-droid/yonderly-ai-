@@ -2,6 +2,7 @@ const {
   getUserFromRequest,
   supabaseRest,
   setCors,
+  subscriptionRequired,
 } = require('../../lib/supabase-server');
 
 module.exports = async (req, res) => {
@@ -30,7 +31,8 @@ module.exports = async (req, res) => {
 
     const subscription = Array.isArray(subscriptions) ? subscriptions[0] : null;
     const businessProfile = Array.isArray(profiles) ? profiles[0] : null;
-    const isActive = subscription?.status === 'active';
+    const isActive =
+      !subscriptionRequired() || subscription?.status === 'active';
 
     return res.status(200).json({
       user: {
@@ -39,6 +41,7 @@ module.exports = async (req, res) => {
       },
       subscription: subscription || null,
       isActive,
+      requireSubscription: subscriptionRequired(),
       hasBusinessProfile: Boolean(businessProfile?.business_name),
       businessProfile: businessProfile || null,
     });

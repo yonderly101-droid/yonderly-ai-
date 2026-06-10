@@ -111,6 +111,7 @@ async function handleRequest(req, res) {
     supabaseUrl: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     supabaseAnonKey: anon,
     supabasePublishableKey: publishable || anon,
+    requireSubscription: process.env.REQUIRE_SUBSCRIPTION === 'true',
   });
 }
 

@@ -118,7 +118,7 @@
         return false;
       }
 
-      if (!account || !account.isActive) {
+      if (account.requireSubscription && !account.isActive) {
         location.href = '/dashboard?billing=required';
         return true;
       }

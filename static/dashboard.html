@@ -102,15 +102,19 @@
       const email = account.user.email;
       welcomeText.textContent = 'Signed in as ' + email + '.';
 
-      if (account.isActive) {
-        statusBadge.textContent = 'Active';
-        statusBadge.classList.add('ok');
-        billingAlert.style.display = 'none';
-      } else {
+      if (account.requireSubscription && !account.isActive) {
         statusBadge.textContent = 'No subscription';
         statusBadge.classList.add('warn');
         billingAlert.style.display = 'block';
         await initPayPal();
+      } else if (account.isActive) {
+        statusBadge.textContent = 'Active';
+        statusBadge.classList.add('ok');
+        billingAlert.style.display = 'none';
+      } else {
+        statusBadge.textContent = 'Test mode';
+        statusBadge.classList.add('ok');
+        billingAlert.style.display = 'none';
       }
 
       if (account.hasBusinessProfile && account.businessProfile) {
@@ -120,7 +124,8 @@
         document.getElementById('stat-business').textContent = 'Not set up';
       }
 
-      document.getElementById('stat-email').textContent = account.isActive ? 'Ready' : 'Locked';
+      document.getElementById('stat-email').textContent =
+        account.isActive || !account.requireSubscription ? 'Ready' : 'Locked';
     }
 
     boot().catch((err) => {
