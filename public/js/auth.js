@@ -1,26 +1,68 @@
 (function (global) {
   let client = null;
+  let configCache = null;
 
   async function loadConfig() {
-    const res = await fetch('/api/config');
+    if (configCache) return configCache;
+    let res;
+    try {
+      res = await fetch('/api/config');
+    } catch {
+      throw new Error('Could not reach Yonderly. Check your internet connection and try again.');
+    }
     if (!res.ok) throw new Error('Could not load app config');
-    return res.json();
+    configCache = await res.json();
+    return configCache;
   }
 
   async function getClient() {
     if (client) return client;
     const config = await loadConfig();
-    if (!config.supabaseUrl || !config.supabaseAnonKey) {
-      throw new Error('Supabase is not configured on the server');
+    const url = config.supabaseUrl;
+    const key = config.supabaseAnonKey || config.supabasePublishableKey;
+    if (!url || !key) {
+      throw new Error('Supabase is not configured. Contact support.');
     }
-    client = global.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    client = global.supabase.createClient(url, key, {
+      auth: {
+        flowType: 'pkce',
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    });
     return client;
+  }
+
+  function authErrorMessage(err) {
+    const msg = err && err.message ? err.message : String(err || '');
+    if (/failed to fetch|networkerror|network request failed/i.test(msg)) {
+      return (
+        'Could not reach Supabase. In your Supabase dashboard go to Settings → API, ' +
+        'copy Project URL, and set SUPABASE_URL on Vercel to match exactly.'
+      );
+    }
+    return msg || 'Authentication failed';
   }
 
   async function getSession() {
     const sb = await getClient();
     const { data, error } = await sb.auth.getSession();
     if (error) throw error;
+    return data.session;
+  }
+
+  async function handleOAuthReturn() {
+    const sb = await getClient();
+    const params = new URLSearchParams(global.location.search);
+    const code = params.get('code');
+    if (!code) return null;
+    const { data, error } = await sb.auth.exchangeCodeForSession(code);
+    if (error) throw error;
+    if (global.history.replaceState) {
+      const next = params.get('next') || '/dashboard';
+      global.history.replaceState({}, '', '/login?next=' + encodeURIComponent(next));
+    }
     return data.session;
   }
 
@@ -39,17 +81,34 @@
     const { data, error } = await sb.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName || '' } },
+      options: {
+        data: { full_name: fullName || '' },
+        emailRedirectTo: global.location.origin + '/login',
+      },
     });
-    if (error) throw error;
+    if (error) throw new Error(authErrorMessage(error));
     return data;
   }
 
   async function signIn(email, password) {
     const sb = await getClient();
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) throw new Error(authErrorMessage(error));
     return data;
+  }
+
+  async function signInWithGoogle(nextPath) {
+    const sb = await getClient();
+    const next = nextPath || '/dashboard';
+    const redirectTo = global.location.origin + '/login?next=' + encodeURIComponent(next);
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    if (error) throw new Error(authErrorMessage(error));
   }
 
   async function signOut() {
@@ -61,9 +120,14 @@
   async function fetchAccount() {
     const session = await getSession();
     if (!session) return null;
-    const res = await fetch('/api/account/me', {
-      headers: { Authorization: 'Bearer ' + session.access_token },
-    });
+    let res;
+    try {
+      res = await fetch('/api/account/me', {
+        headers: { Authorization: 'Bearer ' + session.access_token },
+      });
+    } catch {
+      throw new Error('Could not load your account. Try again in a moment.');
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Could not load account');
@@ -107,12 +171,15 @@
     loadConfig,
     getClient,
     getSession,
+    handleOAuthReturn,
     requireSession,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     fetchAccount,
     activateSubscription,
     saveProfile,
+    authErrorMessage,
   };
 })(window);
