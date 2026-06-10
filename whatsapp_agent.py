@@ -1,7 +1,7 @@
 """
-Yonderly — WhatsApp AI Agent
-Receives WhatsApp messages via Twilio webhook, generates replies with Claude,
-sends them back on WhatsApp, and logs conversations to whatsapp_log.json.
+Yonderly — WhatsApp AI via Pabbly Connect
+Pabbly calls POST /pabbly/reply with the customer message; Yonderly returns the AI reply.
+Configure WhatsApp send/receive in Pabbly Connect — not in this app.
 """
 
 import json
@@ -10,11 +10,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import anthropic
+import requests
 from dotenv import load_dotenv
-from flask import request
+from flask import jsonify, request
 
-# sanitization
-from utils.security import sanitize_text, validate_phone
+from utils.security import sanitize_text
 
 load_dotenv()
 
@@ -23,24 +23,13 @@ PROFILE_PATH = BASE_DIR / "business_profile.json"
 LOG_PATH = BASE_DIR / "whatsapp_log.json"
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 
-# Optional Supabase integration: will be used if SUPABASE_URL and a SUPABASE key are present
 try:
     from supabase_client import from_env as supabase_from_env
 except Exception:
     supabase_from_env = None
 
 
-def is_whatsapp_configured():
-    """Check whether Twilio WhatsApp credentials are set."""
-    return all([
-        os.environ.get("TWILIO_ACCOUNT_SID", "").strip(),
-        os.environ.get("TWILIO_AUTH_TOKEN", "").strip(),
-        os.environ.get("TWILIO_WHATSAPP_NUMBER", "").strip(),
-    ])
-
-
 def load_business_profile():
-    """Load the business profile that powers the AI agent."""
     if not PROFILE_PATH.exists():
         return None
     with open(PROFILE_PATH, "r", encoding="utf-8") as f:
@@ -48,7 +37,6 @@ def load_business_profile():
 
 
 def load_whatsapp_log():
-    """Load existing WhatsApp conversation log."""
     if LOG_PATH.exists():
         with open(LOG_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -56,13 +44,11 @@ def load_whatsapp_log():
 
 
 def save_whatsapp_log(log):
-    """Save WhatsApp conversation log to JSON file."""
     with open(LOG_PATH, "w", encoding="utf-8") as f:
         json.dump(log, f, indent=2, ensure_ascii=False)
 
 
 def build_system_prompt(profile):
-    """Build the system prompt sent to Claude for every WhatsApp message."""
     business_name = profile["business_name"]
     business_profile = json.dumps(profile, indent=2)
 
@@ -79,7 +65,6 @@ def build_system_prompt(profile):
 
 
 def generate_reply(client, profile, customer_message):
-    """Send the customer message to Claude and get a reply."""
     system_prompt = build_system_prompt(profile)
     user_message = (
         f"Reply to this customer WhatsApp message. "
@@ -97,24 +82,37 @@ def generate_reply(client, profile, customer_message):
     return response.content[0].text.strip()
 
 
-def send_whatsapp_message(to_number, message):
-    """Send a WhatsApp message back to the customer via Twilio."""
-    from twilio.rest import Client
+def extract_message_fields(data):
+    """Accept flexible JSON keys from Pabbly Connect HTTP steps."""
+    if not isinstance(data, dict):
+        return "unknown", ""
 
-    account_sid = os.environ["TWILIO_ACCOUNT_SID"]
-    auth_token = os.environ["TWILIO_AUTH_TOKEN"]
-    from_number = os.environ["TWILIO_WHATSAPP_NUMBER"]
-
-    client = Client(account_sid, auth_token)
-    client.messages.create(
-        body=message,
-        from_=from_number,
-        to=to_number,
+    message = (
+        data.get("message")
+        or data.get("body")
+        or data.get("text")
+        or data.get("customer_message")
+        or data.get("Message")
+        or data.get("Body")
+        or ""
     )
+    if isinstance(message, dict):
+        message = message.get("body") or message.get("text") or ""
+
+    customer = (
+        data.get("from")
+        or data.get("customer_phone")
+        or data.get("customer_number")
+        or data.get("phone")
+        or data.get("sender")
+        or data.get("From")
+        or "unknown"
+    )
+
+    return str(customer).strip(), str(message).strip()
 
 
 def log_conversation(customer_number, customer_message, yonderly_reply):
-    """Append a conversation entry to whatsapp_log.json."""
     timestamp = datetime.now(timezone.utc).isoformat()
     entry = {
         "timestamp": timestamp,
@@ -123,39 +121,50 @@ def log_conversation(customer_number, customer_message, yonderly_reply):
         "yonderly_reply": yonderly_reply,
     }
 
-    # Local JSON fallback
     log = load_whatsapp_log()
     log.append(entry)
     save_whatsapp_log(log)
 
-    # Try to persist into Supabase (best-effort). If supabase_from_env is not available
-    # or insertion fails, keep the local JSON as the source of truth.
     if supabase_from_env:
         try:
             client = supabase_from_env()
-            # Map to a simple row structure; ensure your Supabase table `whatsapp_messages`
-            # has matching column names: timestamp, customer_number, customer_message, yonderly_reply, source
             client.insert("whatsapp_messages", {
                 "timestamp": timestamp,
                 "customer_number": customer_number,
                 "customer_message": customer_message,
                 "yonderly_reply": yonderly_reply,
-                "source": "twilio_whatsapp",
+                "source": "pabbly_connect",
             })
         except Exception as e:
             print("Supabase log failed:", e)
 
 
+def notify_pabbly(customer_number, customer_message, reply):
+    """Optional: POST result to your Pabbly Connect webhook listener."""
+    url = os.environ.get("PABBLY_WEBHOOK_URL", "").strip()
+    if not url:
+        return
+
+    try:
+        requests.post(
+            url,
+            json={
+                "customer_number": customer_number,
+                "customer_message": customer_message,
+                "reply": reply,
+                "business_name": (load_business_profile() or {}).get("business_name", "Test Salon"),
+            },
+            timeout=15,
+        )
+    except Exception as e:
+        print(f"Pabbly notify failed: {e}")
+
+
 def handle_incoming_message(from_number, body):
-    """Process an incoming WhatsApp message and return the AI reply text."""
+    """Process a customer message and return the AI reply text."""
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         return "Yonderly is not configured yet. Please add your Anthropic API key."
-
-    # sanitize and validate inputs
-    cleaned_number = (from_number or "").strip()
-    if not validate_phone(cleaned_number):
-        return "Invalid phone number."
 
     body, ok = sanitize_text(body, max_length=2000)
     if not ok:
@@ -171,34 +180,53 @@ def handle_incoming_message(from_number, body):
     return reply
 
 
+def check_pabbly_auth():
+    """Optional shared secret if PABBLY_WEBHOOK_SECRET is set."""
+    secret = os.environ.get("PABBLY_WEBHOOK_SECRET", "").strip()
+    if not secret:
+        return True
+    provided = request.headers.get("X-Pabbly-Secret") or request.args.get("secret", "")
+    return provided == secret
+
+
 def register_whatsapp_routes(app):
-    """Register the /whatsapp webhook route on a Flask app."""
+    """Register Pabbly Connect endpoints (kept name for app.py compatibility)."""
 
-    @app.route("/whatsapp", methods=["POST"])
-    def whatsapp_webhook():
-        """Receive incoming WhatsApp messages from Twilio."""
-        if not is_whatsapp_configured():
-            print("WhatsApp not configured yet")
-            return "", 200
+    @app.route("/pabbly/reply", methods=["POST"])
+    @app.route("/api/pabbly", methods=["POST"])
+    def pabbly_reply():
+        if not check_pabbly_auth():
+            return jsonify({"error": "Unauthorized"}), 401
 
-        from_number = request.form.get("From", "")
-        body = request.form.get("Body", "").strip()
+        data = request.get_json(silent=True) or {}
+        customer_number, message = extract_message_fields(data)
 
-        if not from_number or not body:
-            return "", 200
+        if not message:
+            return jsonify({"error": "Missing customer message (use message, body, or text)"}), 400
 
         try:
-            reply = handle_incoming_message(from_number, body)
-            send_whatsapp_message(from_number, reply)
-            print(f"  WhatsApp reply sent to {from_number}")
-        except Exception as e:
-            print(f"  WhatsApp error for {from_number}: {e}")
+            reply = handle_incoming_message(customer_number, message)
+            profile = load_business_profile() or {}
+            notify_pabbly(customer_number, message, reply)
+            return jsonify({
+                "reply": reply,
+                "business_name": profile.get("business_name", "Test Salon"),
+                "customer_number": customer_number,
+            })
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
 
-        return "", 200
+    @app.route("/pabbly/health", methods=["GET"])
+    def pabbly_health():
+        return jsonify({"status": "ok", "service": "yonderly-pabbly"})
+
+
+def register_pabbly_routes(app):
+    """Alias for clarity in new code."""
+    register_whatsapp_routes(app)
 
 
 def main():
-    """Run the WhatsApp agent as a standalone webhook server."""
     from flask import Flask
 
     app = Flask(__name__)
@@ -207,18 +235,10 @@ def main():
     port = int(os.environ.get("WHATSAPP_PORT", 5001))
 
     print("=" * 50)
-    print("  Yonderly WhatsApp AI Agent")
+    print("  Yonderly — Pabbly Connect AI Reply API")
     print("=" * 50)
-
-    if not is_whatsapp_configured():
-        print("\n  WhatsApp not configured yet")
-        print("  Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and")
-        print("  TWILIO_WHATSAPP_NUMBER to your .env file.\n")
-    else:
-        print("\n  Twilio WhatsApp configured")
-        print(f"  Webhook: http://127.0.0.1:{port}/whatsapp")
-        print("  Point your Twilio sandbox webhook to this URL.\n")
-
+    print(f"\n  POST http://127.0.0.1:{port}/pabbly/reply")
+    print("  Use this URL in Pabbly Connect → Webhooks → API / HTTP Request\n")
     print(f"  Listening on port {port}")
     print("  Press Ctrl+C to stop\n")
 
