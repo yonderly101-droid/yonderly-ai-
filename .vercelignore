@@ -15,5 +15,9 @@ whatsapp_agent.py
 requirements.txt
 templates/
 landing.html
+api/supabase_example.js
+api/agent.js
+api/root.js
+api/gmail/
 README.md
 DEPLOY.md

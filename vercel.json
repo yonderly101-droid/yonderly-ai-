@@ -16,10 +16,10 @@
     { "source": "/api/account/me", "destination": "/api/account/me" },
     { "source": "/api/account/profile", "destination": "/api/account/profile" },
     { "source": "/api/subscription/activate", "destination": "/api/subscription/activate" },
-    { "source": "/api/gmail/connect", "destination": "/api/gmail/connect" },
-    { "source": "/api/gmail/callback", "destination": "/api/gmail/callback" },
-    { "source": "/api/gmail/status", "destination": "/api/gmail/status" },
-    { "source": "/api/gmail/disconnect", "destination": "/api/gmail/disconnect" },
+    { "source": "/api/gmail/connect", "destination": "/api/gmail" },
+    { "source": "/api/gmail/callback", "destination": "/api/gmail" },
+    { "source": "/api/gmail/status", "destination": "/api/gmail" },
+    { "source": "/api/gmail/disconnect", "destination": "/api/gmail" },
     { "source": "/api/cron/email-poll", "destination": "/api/cron/email-poll" }
   ]
 }
