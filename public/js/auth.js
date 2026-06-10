@@ -15,6 +15,14 @@
     return configCache;
   }
 
+  async function appOrigin() {
+    const host = global.location.hostname;
+    if (host === 'www.yonderly.online' || host === 'yonderly.online') {
+      return 'https://yonderly.online';
+    }
+    return global.location.origin;
+  }
+
   async function getClient() {
     if (client) return client;
     const config = await loadConfig();
@@ -25,10 +33,11 @@
     }
     client = global.supabase.createClient(url, key, {
       auth: {
-        flowType: 'pkce',
+        flowType: 'implicit',
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
+        storage: global.localStorage,
       },
     });
     return client;
@@ -54,14 +63,10 @@
 
   async function handleOAuthReturn() {
     const sb = await getClient();
-    const params = new URLSearchParams(global.location.search);
-    const code = params.get('code');
-    if (!code) return null;
-    const { data, error } = await sb.auth.exchangeCodeForSession(code);
+    const { data, error } = await sb.auth.getSession();
     if (error) throw error;
-    if (global.history.replaceState) {
-      const next = params.get('next') || '/dashboard';
-      global.history.replaceState({}, '', '/login?next=' + encodeURIComponent(next));
+    if (data.session && global.history.replaceState) {
+      global.history.replaceState({}, '', global.location.pathname + global.location.search);
     }
     return data.session;
   }
@@ -100,7 +105,8 @@
   async function signInWithGoogle(nextPath) {
     const sb = await getClient();
     const next = nextPath || '/dashboard';
-    const redirectTo = global.location.origin + '/login?next=' + encodeURIComponent(next);
+    const origin = await appOrigin();
+    const redirectTo = origin + '/login?next=' + encodeURIComponent(next);
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {

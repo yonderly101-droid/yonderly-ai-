@@ -1,6 +1,14 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.yonderly.online" }],
+      "destination": "https://yonderly.online/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/pabbly/reply", "destination": "/api/pabbly" },
     { "source": "/webhook", "destination": "/api/whatsapp" },
