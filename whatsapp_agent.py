@@ -1,7 +1,7 @@
 """
-Yonderly — WhatsApp AI via Pabbly Connect
-Pabbly calls POST /pabbly/reply with the customer message; Yonderly returns the AI reply.
-Configure WhatsApp send/receive in Pabbly Connect — not in this app.
+Yonderly — WhatsApp AI
+- Meta Cloud API: GET/POST /webhook (direct — no Pabbly needed)
+- Pabbly Connect: POST /pabbly/reply (optional)
 """
 
 import json
@@ -22,6 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent
 PROFILE_PATH = BASE_DIR / "business_profile.json"
 LOG_PATH = BASE_DIR / "whatsapp_log.json"
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
+GRAPH_API = "https://graph.facebook.com/v21.0"
 
 try:
     from supabase_client import from_env as supabase_from_env
@@ -112,13 +113,14 @@ def extract_message_fields(data):
     return str(customer).strip(), str(message).strip()
 
 
-def log_conversation(customer_number, customer_message, yonderly_reply):
+def log_conversation(customer_number, customer_message, yonderly_reply, source="whatsapp"):
     timestamp = datetime.now(timezone.utc).isoformat()
     entry = {
         "timestamp": timestamp,
         "customer_number": customer_number,
         "customer_message": customer_message,
         "yonderly_reply": yonderly_reply,
+        "source": source,
     }
 
     log = load_whatsapp_log()
@@ -133,10 +135,53 @@ def log_conversation(customer_number, customer_message, yonderly_reply):
                 "customer_number": customer_number,
                 "customer_message": customer_message,
                 "yonderly_reply": yonderly_reply,
-                "source": "pabbly_connect",
+                "source": source,
             })
         except Exception as e:
             print("Supabase log failed:", e)
+
+
+def extract_meta_messages(payload):
+    messages = []
+    if not isinstance(payload, dict):
+        return messages
+    for entry in payload.get("entry", []):
+        for change in entry.get("changes", []):
+            value = change.get("value") or {}
+            for msg in value.get("messages") or []:
+                if msg.get("type") != "text":
+                    continue
+                body = (msg.get("text") or {}).get("body") or ""
+                sender = str(msg.get("from") or "").strip()
+                if sender and body.strip():
+                    messages.append({"from": sender, "body": body.strip()})
+    return messages
+
+
+def send_whatsapp_text(to_number, body):
+    token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+    phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+    if not token or not phone_number_id:
+        raise RuntimeError("WhatsApp send not configured")
+
+    response = requests.post(
+        f"{GRAPH_API}/{phone_number_id}/messages",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "messaging_product": "whatsapp",
+            "to": to_number,
+            "type": "text",
+            "text": {"body": body},
+        },
+        timeout=30,
+    )
+    data = response.json()
+    if not response.ok:
+        raise RuntimeError(data.get("error", {}).get("message", "WhatsApp send failed"))
+    return data
 
 
 def notify_pabbly(customer_number, customer_message, reply):
@@ -160,7 +205,7 @@ def notify_pabbly(customer_number, customer_message, reply):
         print(f"Pabbly notify failed: {e}")
 
 
-def handle_incoming_message(from_number, body):
+def handle_incoming_message(from_number, body, source="whatsapp"):
     """Process a customer message and return the AI reply text."""
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
@@ -176,7 +221,7 @@ def handle_incoming_message(from_number, body):
 
     client = anthropic.Anthropic(api_key=api_key)
     reply = generate_reply(client, profile, body)
-    log_conversation(from_number, body, reply)
+    log_conversation(from_number, body, reply, source=source)
     return reply
 
 
@@ -190,7 +235,44 @@ def check_pabbly_auth():
 
 
 def register_whatsapp_routes(app):
-    """Register Pabbly Connect endpoints (kept name for app.py compatibility)."""
+    """Register WhatsApp endpoints (Meta direct + optional Pabbly)."""
+
+    @app.route("/webhook", methods=["GET", "POST"])
+    @app.route("/whatsapp", methods=["GET", "POST"])
+    def meta_webhook():
+        if request.method == "GET":
+            mode = request.args.get("hub.mode")
+            token = request.args.get("hub.verify_token")
+            challenge = request.args.get("hub.challenge")
+            expected = os.environ.get("WHATSAPP_VERIFY_TOKEN", "").strip()
+            if mode == "subscribe" and token == expected and challenge:
+                return challenge, 200, {"Content-Type": "text/plain"}
+            return "Forbidden", 403
+
+        payload = request.get_json(silent=True) or {}
+        incoming = extract_meta_messages(payload)
+        if not incoming:
+            return jsonify({"status": "ok"}), 200
+
+        errors = []
+        for msg in incoming:
+            try:
+                reply = handle_incoming_message(
+                    msg["from"], msg["body"], source="meta_cloud_api"
+                )
+                send_whatsapp_text(msg["from"], reply)
+            except Exception as exc:
+                errors.append(str(exc))
+                try:
+                    send_whatsapp_text(
+                        msg["from"],
+                        "Sorry, we could not process your message right now. Please try again shortly.",
+                    )
+                except Exception:
+                    pass
+
+        status = "partial" if errors else "ok"
+        return jsonify({"status": status, "processed": len(incoming), "errors": errors or None}), 200
 
     @app.route("/pabbly/reply", methods=["POST"])
     @app.route("/api/pabbly", methods=["POST"])
@@ -205,7 +287,9 @@ def register_whatsapp_routes(app):
             return jsonify({"error": "Missing customer message (use message, body, or text)"}), 400
 
         try:
-            reply = handle_incoming_message(customer_number, message)
+            reply = handle_incoming_message(
+                customer_number, message, source="pabbly_connect"
+            )
             profile = load_business_profile() or {}
             notify_pabbly(customer_number, message, reply)
             return jsonify({
@@ -235,10 +319,10 @@ def main():
     port = int(os.environ.get("WHATSAPP_PORT", 5001))
 
     print("=" * 50)
-    print("  Yonderly — Pabbly Connect AI Reply API")
+    print("  Yonderly — WhatsApp (Meta Cloud API + optional Pabbly)")
     print("=" * 50)
-    print(f"\n  POST http://127.0.0.1:{port}/pabbly/reply")
-    print("  Use this URL in Pabbly Connect → Webhooks → API / HTTP Request\n")
+    print(f"\n  Meta webhook: http://127.0.0.1:{port}/webhook")
+    print(f"  Pabbly reply: http://127.0.0.1:{port}/pabbly/reply\n")
     print(f"  Listening on port {port}")
     print("  Press Ctrl+C to stop\n")
 

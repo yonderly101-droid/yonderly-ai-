@@ -2,6 +2,8 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/pabbly/reply", "destination": "/api/pabbly" }
+    { "source": "/pabbly/reply", "destination": "/api/pabbly" },
+    { "source": "/webhook", "destination": "/api/whatsapp" },
+    { "source": "/whatsapp", "destination": "/api/whatsapp" }
   ]
 }
