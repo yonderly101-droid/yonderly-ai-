@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yonderly — Sign in</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#9aa8bc; --accent:#6c8cff; --border:#2a3648; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .card { width:100%; max-width:420px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; }
+    h1 { margin:0 0 8px; font-size:1.5rem; }
+    p { color:var(--muted); margin:0 0 24px; line-height:1.5; }
+    label { display:block; font-size:.85rem; margin-bottom:6px; color:var(--muted); }
+    input { width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border); background:#111827; color:var(--text); margin-bottom:14px; }
+    button { width:100%; padding:12px; border:none; border-radius:10px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+    button.secondary { background:transparent; border:1px solid var(--border); color:var(--text); margin-top:10px; }
+    .error { background:#3b1d24; color:#ffb4b4; padding:10px 12px; border-radius:8px; margin-bottom:14px; display:none; }
+    .error.show { display:block; }
+    .tabs { display:flex; gap:8px; margin-bottom:20px; }
+    .tab { flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); }
+    .tab.active { background:#243047; color:var(--text); border-color:var(--accent); }
+    a { color:var(--accent); text-decoration:none; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="card">
+    <h1>Welcome to Yonderly</h1>
+    <p id="subtitle">Sign in to access your AI employee dashboard.</p>
+    <div class="error" id="error"></div>
+    <div class="tabs">
+      <button type="button" class="tab active" id="tab-signin">Sign in</button>
+      <button type="button" class="tab" id="tab-signup">Create account</button>
+    </div>
+    <form id="auth-form">
+      <div id="name-field" style="display:none">
+        <label for="full_name">Full name</label>
+        <input id="full_name" type="text" placeholder="Your name">
+      </div>
+      <label for="email">Email</label>
+      <input id="email" type="email" required placeholder="you@business.com">
+      <label for="password">Password</label>
+      <input id="password" type="password" required minlength="8" placeholder="At least 8 characters">
+      <button type="submit" id="submit-btn">Sign in</button>
+    </form>
+    <p style="margin-top:20px;font-size:.9rem"><a href="/">← Back to home</a></p>
+  </div>
+  <script src="/js/auth.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const next = params.get('next') || '/dashboard';
+    const pendingSub = sessionStorage.getItem('pending_subscription_id');
+    let mode = 'signin';
+
+    const errorEl = document.getElementById('error');
+    const nameField = document.getElementById('name-field');
+    const submitBtn = document.getElementById('submit-btn');
+    const subtitle = document.getElementById('subtitle');
+
+    if (pendingSub) {
+      subtitle.textContent = 'Sign in to activate your subscription and set up your agent.';
+    }
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.classList.add('show');
+    }
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      document.getElementById('tab-signin').classList.toggle('active', mode === 'signin');
+      document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+      nameField.style.display = mode === 'signup' ? 'block' : 'none';
+      submitBtn.textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+    }
+
+    document.getElementById('tab-signin').onclick = () => setMode('signin');
+    document.getElementById('tab-signup').onclick = () => setMode('signup');
+
+    async function afterAuth() {
+      const subId = sessionStorage.getItem('pending_subscription_id');
+      if (subId) {
+        await YonderlyAuth.activateSubscription(subId);
+        sessionStorage.removeItem('pending_subscription_id');
+      }
+      const account = await YonderlyAuth.fetchAccount();
+      if (!account.isActive) {
+        location.href = '/dashboard?billing=required';
+        return;
+      }
+      if (!account.hasBusinessProfile) {
+        location.href = '/onboarding';
+        return;
+      }
+      location.href = next.startsWith('/') ? next : '/dashboard';
+    }
+
+    document.getElementById('auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.classList.remove('show');
+      submitBtn.disabled = true;
+      try {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (mode === 'signup') {
+          const fullName = document.getElementById('full_name').value.trim();
+          await YonderlyAuth.signUp(email, password, fullName);
+        } else {
+          await YonderlyAuth.signIn(email, password);
+        }
+        await afterAuth();
+      } catch (err) {
+        showError(err.message || 'Authentication failed');
+        submitBtn.disabled = false;
+      }
+    });
+
+    YonderlyAuth.getSession().then(async (session) => {
+      if (session) await afterAuth();
+    }).catch(() => {});
+  </script>
+</body>
+</html>

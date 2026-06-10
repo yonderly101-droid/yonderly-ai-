@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yonderly — Set up your AI employee</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#9aa8bc; --accent:#6c8cff; --border:#2a3648; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); }
+    .wrap { max-width:720px; margin:0 auto; padding:24px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; }
+    h1 { margin:0 0 8px; }
+    p { color:var(--muted); line-height:1.5; }
+    label { display:block; font-size:.85rem; color:var(--muted); margin:14px 0 6px; }
+    input, textarea, select { width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:#111827; color:var(--text); }
+    textarea { min-height:90px; resize:vertical; }
+    button { margin-top:20px; width:100%; padding:12px; border:none; border-radius:10px; background:#6c8cff; color:#fff; font-weight:600; cursor:pointer; }
+    .error { display:none; background:#3b1d24; color:#ffb4b4; padding:10px; border-radius:8px; margin-bottom:12px; }
+    .error.show { display:block; }
+    a { color:#6c8cff; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Set up your AI employee</h1>
+      <p>Tell Yonderly about your business so it can reply to customers correctly.</p>
+      <div class="error" id="error"></div>
+      <form id="profile-form">
+        <label for="business_name">Business name</label>
+        <input id="business_name" required>
+        <label for="offerings">What do you sell or offer?</label>
+        <textarea id="offerings" required></textarea>
+        <label for="prices">Prices</label>
+        <textarea id="prices" required></textarea>
+        <label for="common_questions">Common customer questions</label>
+        <textarea id="common_questions" required></textarea>
+        <label for="tone">Tone</label>
+        <select id="tone">
+          <option value="friendly">Friendly</option>
+          <option value="professional">Professional</option>
+          <option value="casual">Casual</option>
+        </select>
+        <label for="contact_email">Contact email (monitored inbox)</label>
+        <input id="contact_email" type="email" required>
+        <label for="restrictions">Rules / things Yonderly must never do</label>
+        <textarea id="restrictions" required></textarea>
+        <button type="submit">Save & go to dashboard</button>
+      </form>
+      <p style="margin-top:16px"><a href="/dashboard">← Dashboard</a></p>
+    </div>
+  </div>
+  <script src="/js/auth.js"></script>
+  <script>
+    const errorEl = document.getElementById('error');
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.classList.add('show');
+    }
+
+    async function boot() {
+      const session = await YonderlyAuth.requireSession('/onboarding');
+      if (!session) return;
+      const account = await YonderlyAuth.fetchAccount();
+      if (!account.isActive) {
+        location.href = '/dashboard?billing=required';
+        return;
+      }
+      const p = account.businessProfile;
+      if (p) {
+        business_name.value = p.business_name || '';
+        offerings.value = p.offerings || '';
+        prices.value = p.prices || '';
+        common_questions.value = p.common_questions || '';
+        tone.value = p.tone || 'friendly';
+        contact_email.value = p.contact_email || account.user.email || '';
+        restrictions.value = p.restrictions || '';
+      } else {
+        contact_email.value = account.user.email || '';
+      }
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.classList.remove('show');
+      try {
+        await YonderlyAuth.saveProfile({
+          business_name: business_name.value.trim(),
+          offerings: offerings.value.trim(),
+          prices: prices.value.trim(),
+          common_questions: common_questions.value.trim(),
+          tone: tone.value,
+          contact_email: contact_email.value.trim(),
+          restrictions: restrictions.value.trim(),
+        });
+        location.href = '/dashboard';
+      } catch (err) {
+        showError(err.message || 'Save failed');
+      }
+    });
+
+    boot().catch((err) => showError(err.message));
+  </script>
+</body>
+</html>

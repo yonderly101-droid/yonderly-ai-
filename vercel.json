@@ -4,6 +4,9 @@
   "rewrites": [
     { "source": "/pabbly/reply", "destination": "/api/pabbly" },
     { "source": "/webhook", "destination": "/api/whatsapp" },
-    { "source": "/whatsapp", "destination": "/api/whatsapp" }
+    { "source": "/whatsapp", "destination": "/api/whatsapp" },
+    { "source": "/api/account/me", "destination": "/api/account/me" },
+    { "source": "/api/account/profile", "destination": "/api/account/profile" },
+    { "source": "/api/subscription/activate", "destination": "/api/subscription/activate" }
   ]
 }

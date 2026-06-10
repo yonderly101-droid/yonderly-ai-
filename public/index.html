@@ -847,6 +847,7 @@
         <div class="nav-links">
           <a href="#how-it-works">How it works</a>
           <a href="#pricing">Pricing</a>
+          <a href="/login">Sign in</a>
           <button type="button" class="btn btn-demo open-demo">Try Demo</button>
           <a href="#pricing" class="btn btn-primary">Get Started</a>
         </div>
@@ -987,7 +988,8 @@
               <p class="paypal-label">Get Started with PayPal</p>
               <div id="paypal-button-container"></div>
               <div class="payment-success" id="payment-success">
-                Payment received! Welcome to Yonderly. Check your email for setup instructions.
+                Payment received! Create your account or sign in to activate your AI employee.
+                <a href="/login" style="color:inherit;font-weight:600">Continue to setup →</a>
               </div>
             </div>
 
@@ -1256,9 +1258,10 @@
               return actions.subscription.create({ plan_id: config.paypalPlanId });
             },
             onApprove: function(data) {
-              console.log('PayPal subscription approved:', data.subscriptionID);
+              sessionStorage.setItem('pending_subscription_id', data.subscriptionID);
               document.getElementById('payment-success').classList.add('show');
               container.style.display = 'none';
+              window.location.href = '/login?next=/onboarding';
             },
             onError: function(err) {
               console.error('PayPal error:', err);

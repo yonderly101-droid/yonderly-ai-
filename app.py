@@ -176,24 +176,44 @@ def compute_email_stats(raw_log):
     }
 
 
-@app.route("/")
-def index():
-    """Show the onboarding form, pre-filled if a profile already exists."""
-    profile = load_profile()
-    return render_template("index.html", profile=profile)
+@app.route('/js/<path:filename>')
+def serve_js(filename):
+    return send_from_directory(BASE_DIR / 'static' / 'js', filename)
 
 
 @app.route('/onboarding')
 def onboarding():
-    # Access gated: check token query param or session
-    token = request.args.get('token')
-    if token and is_token_valid(token):
-        session['access_token'] = token
-    elif not session.get('access_token') or not is_token_valid(session.get('access_token')):
-        return redirect(url_for('index', msg="Please complete payment to access Yonderly"))
+    return redirect('/onboarding.html') if _use_static_auth() else render_template('index.html', profile=load_profile())
 
-    profile = load_profile()
-    return render_template('index.html', profile=profile)
+
+def _use_static_auth():
+    """Production auth lives on Vercel static pages; local dev can serve copies from static/."""
+    return (BASE_DIR / 'static' / 'login.html').exists()
+
+
+@app.route('/login')
+@app.route('/login.html')
+def login_page():
+    path = BASE_DIR / 'static' / 'login.html'
+    if path.exists():
+        return send_from_directory('static', 'login.html')
+    return redirect('https://yonderly.online/login')
+
+
+@app.route('/dashboard.html')
+def dashboard_page():
+    path = BASE_DIR / 'static' / 'dashboard.html'
+    if path.exists():
+        return send_from_directory('static', 'dashboard.html')
+    return redirect('https://yonderly.online/dashboard')
+
+
+@app.route('/onboarding.html')
+def onboarding_page():
+    path = BASE_DIR / 'static' / 'onboarding.html'
+    if path.exists():
+        return send_from_directory('static', 'onboarding.html')
+    return redirect('https://yonderly.online/onboarding')
 
 
 @app.route("/submit", methods=["POST"])
@@ -260,36 +280,11 @@ def success():
 
 @app.route("/dashboard")
 def dashboard():
-    """Show all emails Yonderly has replied to. Access gated by payment token/session."""
-    # Access control: allow if valid token provided as query param or in session
-    token = request.args.get('token')
-    if token and is_token_valid(token):
-        session['access_token'] = token
-    elif not session.get('access_token') or not is_token_valid(session.get('access_token')):
-        return redirect(url_for('index', msg="Please complete payment to access Yonderly"))
-    profile = load_profile()
-    raw_log = load_email_log()
-    stats = compute_email_stats(raw_log)
-
-    emails = []
-    for entry in reversed(raw_log):
-        emails.append({
-            "timestamp": format_timestamp(entry.get("timestamp", "")),
-            "customer_name": entry.get("customer_name", "Unknown"),
-            "customer_email": entry.get("customer_email", ""),
-            "subject": entry.get("subject", "(no subject)"),
-            "customer_message": entry.get("customer_message", ""),
-            "yonderly_reply": entry.get("yonderly_reply", ""),
-            "reply_preview": reply_preview(entry.get("yonderly_reply", "")),
-        })
-
-    return render_template(
-        "dashboard.html",
-        profile=profile,
-        emails=emails,
-        stats=stats,
-        pending_replies=load_pending_replies(),
-    )
+    """Legacy Flask dashboard — production uses /dashboard.html with Supabase auth."""
+    path = BASE_DIR / 'static' / 'dashboard.html'
+    if path.exists():
+        return send_from_directory('static', 'dashboard.html')
+    return redirect('https://yonderly.online/dashboard')
 
 
 @app.route('/api/pending_replies', methods=['GET'])

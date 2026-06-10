@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yonderly — Dashboard</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#9aa8bc; --accent:#6c8cff; --border:#2a3648; --ok:#34d399; --warn:#fbbf24; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); }
+    .wrap { max-width:960px; margin:0 auto; padding:24px; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .logo { font-weight:700; font-size:1.2rem; }
+    .badge { padding:6px 10px; border-radius:999px; font-size:.8rem; border:1px solid var(--border); }
+    .badge.ok { color:var(--ok); border-color:#1f6f55; }
+    .badge.warn { color:var(--warn); border-color:#7a5d12; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
+    .stat { font-size:1.8rem; font-weight:700; }
+    .label { color:var(--muted); font-size:.85rem; margin-top:4px; }
+    h2 { margin:0 0 12px; font-size:1.1rem; }
+    p { color:var(--muted); line-height:1.5; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+    a.btn, button.btn { display:inline-block; padding:10px 14px; border-radius:10px; text-decoration:none; font-weight:600; border:none; cursor:pointer; }
+    a.primary, button.primary { background:var(--accent); color:#fff; }
+    a.secondary, button.secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
+    .alert { padding:14px; border-radius:10px; margin-bottom:16px; background:#2a2411; border:1px solid #7a5d12; color:#fde68a; }
+    #paypal-button-container { max-width:320px; margin-top:12px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">Yonderly Dashboard</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="badge" id="status-badge">Loading…</span>
+        <button class="btn secondary" id="signout-btn">Sign out</button>
+      </div>
+    </header>
+
+    <div class="alert" id="billing-alert" style="display:none">
+      Your subscription is not active yet. Subscribe below to unlock your AI agent.
+      <div id="paypal-button-container"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><div class="stat" id="stat-email">—</div><div class="label">Email channel</div></div>
+      <div class="card"><div class="stat" id="stat-wa">Live</div><div class="label">WhatsApp (when configured)</div></div>
+      <div class="card"><div class="stat" id="stat-business">—</div><div class="label">Business profile</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Your AI employee</h2>
+      <p id="welcome-text">Loading your account…</p>
+      <div class="actions">
+        <a href="/onboarding" class="btn primary" id="setup-btn">Set up business profile</a>
+        <a href="/" class="btn secondary">Back to site</a>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>How it works</h2>
+      <p>1. Subscribe → 2. Complete onboarding → 3. Connect email/WhatsApp → 4. Yonderly replies automatically.</p>
+      <p>Email approval mode and per-channel setup are configured from your business profile and integrations.</p>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    const billingAlert = document.getElementById('billing-alert');
+    const statusBadge = document.getElementById('status-badge');
+    const welcomeText = document.getElementById('welcome-text');
+    const setupBtn = document.getElementById('setup-btn');
+
+    document.getElementById('signout-btn').onclick = () => YonderlyAuth.signOut();
+
+    async function initPayPal() {
+      const config = await YonderlyAuth.loadConfig();
+      if (!config.paypalClientId || !config.paypalPlanId) return;
+      const script = document.createElement('script');
+      script.src = 'https://www.paypal.com/sdk/js?client-id=' + config.paypalClientId +
+        '&vault=true&intent=subscription&currency=USD';
+      script.onload = function () {
+        paypal.Buttons({
+          createSubscription: (_, actions) =>
+            actions.subscription.create({ plan_id: config.paypalPlanId }),
+          onApprove: async function (data) {
+            await YonderlyAuth.activateSubscription(data.subscriptionID);
+            location.reload();
+          },
+        }).render('#paypal-button-container');
+      };
+      document.body.appendChild(script);
+    }
+
+    async function boot() {
+      const session = await YonderlyAuth.requireSession('/dashboard');
+      if (!session) return;
+
+      const account = await YonderlyAuth.fetchAccount();
+      const email = account.user.email;
+      welcomeText.textContent = 'Signed in as ' + email + '.';
+
+      if (account.isActive) {
+        statusBadge.textContent = 'Active';
+        statusBadge.classList.add('ok');
+        billingAlert.style.display = 'none';
+      } else {
+        statusBadge.textContent = 'No subscription';
+        statusBadge.classList.add('warn');
+        billingAlert.style.display = 'block';
+        await initPayPal();
+      }
+
+      if (account.hasBusinessProfile && account.businessProfile) {
+        document.getElementById('stat-business').textContent = account.businessProfile.business_name;
+        setupBtn.textContent = 'Edit business profile';
+      } else {
+        document.getElementById('stat-business').textContent = 'Not set up';
+      }
+
+      document.getElementById('stat-email').textContent = account.isActive ? 'Ready' : 'Locked';
+    }
+
+    boot().catch((err) => {
+      welcomeText.textContent = err.message || 'Could not load dashboard';
+    });
+  </script>
+</body>
+</html>
