@@ -1,0 +1,31 @@
+name: Email inbox poll
+
+on:
+  schedule:
+    # Every 5 minutes — keeps Yonderly replying when customers are offline
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll all connected Gmail inboxes
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: https://yonderly.online
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set in GitHub repository secrets."
+            exit 1
+          fi
+          response=$(curl -sS -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/email-poll")
+          body=$(echo "$response" | head -n -1)
+          code=$(echo "$response" | tail -n 1)
+          echo "$body"
+          if [ "$code" != "200" ]; then
+            echo "Poll failed with HTTP $code"
+            exit 1
+          fi

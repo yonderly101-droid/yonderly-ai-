@@ -37,6 +37,10 @@ env/
 
 # Vercel
 .vercel
+.cron-secret.tmp
+.env.local
+.env.poll
+.env.vercel.production
 
 # OS
 .DS_Store
