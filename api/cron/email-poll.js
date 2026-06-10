@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
 
   const auth = await isAuthorizedCron(req);
   if (!auth.ok) {
-    return res.status(401).json({ error: 'Unauthorized', detail: auth.reason });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
