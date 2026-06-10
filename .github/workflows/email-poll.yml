@@ -1,9 +1,9 @@
 name: Email inbox poll
 
+# Production email polling runs via Supabase pg_cron (see supabase/sql/email_poll_cron.sql).
+# This workflow is optional backup / manual trigger only — no scheduled runs (avoids duplicate polls + failure emails).
+
 on:
-  schedule:
-    # Every 5 minutes — fastest reliable schedule on GitHub Actions
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -15,18 +15,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Poll all connected Gmail inboxes
-        uses: actions/github-script@v7
         env:
           APP_URL: https://yonderly.online
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        uses: actions/github-script@v7
         with:
           script: |
-            const token = await core.getIDToken('yonderly-cron');
-            const response = await fetch(`${process.env.APP_URL}/api/cron/email-poll`, {
+            const appUrl = process.env.APP_URL || 'https://yonderly.online';
+            let token = process.env.CRON_SECRET || '';
+
+            if (!token) {
+              try {
+                token = await core.getIDToken('yonderly-cron');
+                core.info('Using GitHub OIDC token');
+              } catch (err) {
+                core.info(
+                  'Skipped: no CRON_SECRET and OIDC unavailable. ' +
+                  'Production polling uses Supabase pg_cron every 5 minutes.'
+                );
+                return;
+              }
+            } else {
+              core.info('Using CRON_SECRET from GitHub Actions secrets');
+            }
+
+            const response = await fetch(`${appUrl}/api/cron/email-poll`, {
               method: 'POST',
               headers: { Authorization: `Bearer ${token}` },
             });
             const body = await response.text();
-            console.log(body);
+            core.info(body);
+
             if (!response.ok) {
               core.setFailed(`Poll failed with HTTP ${response.status}: ${body}`);
             }
