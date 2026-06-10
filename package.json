@@ -20,7 +20,6 @@
   "homepage": "https://github.com/yonderly101-droid/yonderly-ai-#readme",
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
-    "@supabase/supabase-js": "^2.108.1",
-    "jose": "^6.2.3"
+    "@supabase/supabase-js": "^2.108.1"
   }
 }
