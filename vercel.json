@@ -1,12 +1,6 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "crons": [
-    {
-      "path": "/api/cron/email-poll",
-      "schedule": "*/5 * * * *"
-    }
-  ],
   "redirects": [
     {
       "source": "/:path*",
