@@ -44,6 +44,9 @@ module.exports = async (req, res) => {
       requireSubscription: subscriptionRequired(),
       hasBusinessProfile: Boolean(businessProfile?.business_name),
       businessProfile: businessProfile || null,
+      whatsappPlatformReady: Boolean(
+        process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID
+      ),
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Failed to load account' });

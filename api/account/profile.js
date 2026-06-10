@@ -63,6 +63,7 @@ module.exports = async (req, res) => {
       common_questions: cleanText(body.common_questions, 2000),
       tone,
       contact_email: cleanText(body.contact_email, 320).toLowerCase(),
+      whatsapp_phone: cleanText(body.whatsapp_phone, 40),
       restrictions: cleanText(body.restrictions, 1000),
       updated_at: new Date().toISOString(),
     };

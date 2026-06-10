@@ -14,7 +14,6 @@ email_agent.py
 whatsapp_agent.py
 requirements.txt
 templates/
-static/
 landing.html
 README.md
 DEPLOY.md

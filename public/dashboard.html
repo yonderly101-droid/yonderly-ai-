@@ -15,6 +15,7 @@
     .badge.ok { color:var(--ok); border-color:#1f6f55; }
     .badge.warn { color:var(--warn); border-color:#7a5d12; }
     .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+    .channels { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-bottom:24px; }
     .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
     .stat { font-size:1.8rem; font-weight:700; }
     .label { color:var(--muted); font-size:.85rem; margin-top:4px; }
@@ -25,9 +26,11 @@
     a.primary, button.primary { background:var(--accent); color:#fff; }
     a.secondary, button.secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
     button.danger { background:transparent; border:1px solid #7f1d1d; color:var(--err); }
+    button:disabled, a.btn.disabled { opacity:.45; cursor:not-allowed; pointer-events:none; }
     .alert { padding:14px; border-radius:10px; margin-bottom:16px; background:#2a2411; border:1px solid #7a5d12; color:#fde68a; }
     .alert.ok { background:#10231c; border-color:#1f6f55; color:#a7f3d0; }
     .alert.err { background:#2a1515; border-color:#7f1d1d; color:#fecaca; }
+    .alert.info { background:#111827; border-color:var(--border); color:var(--muted); }
     #paypal-button-container { max-width:320px; margin-top:12px; }
     table { width:100%; border-collapse:collapse; font-size:.9rem; }
     th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); }
@@ -35,6 +38,12 @@
     .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem; border:1px solid var(--border); }
     .pill.replied { color:var(--ok); border-color:#1f6f55; }
     .pill.skipped { color:var(--muted); }
+    .pill.ok { color:var(--ok); border-color:#1f6f55; }
+    .pill.warn { color:var(--warn); border-color:#7a5d12; }
+    input[type=text], input[type=tel] { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#111827; color:var(--text); margin-top:8px; }
+    code { background:#111827; padding:2px 6px; border-radius:6px; font-size:.85rem; }
+    ol { color:var(--muted); padding-left:20px; }
+    ol li { margin-bottom:8px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -55,11 +64,47 @@
 
     <div class="alert ok" id="gmail-success" style="display:none"></div>
     <div class="alert err" id="gmail-error" style="display:none"></div>
+    <div class="alert info" id="setup-hint" style="display:none">
+      Step 1: <a href="/onboarding" style="color:#6c8cff">Complete your business profile</a> — then connect Gmail and WhatsApp below.
+    </div>
 
     <div class="grid">
       <div class="card"><div class="stat" id="stat-email">—</div><div class="label">Email channel</div></div>
-      <div class="card"><div class="stat" id="stat-wa">Live</div><div class="label">WhatsApp (when configured)</div></div>
+      <div class="card"><div class="stat" id="stat-wa">—</div><div class="label">WhatsApp channel</div></div>
       <div class="card"><div class="stat" id="stat-business">—</div><div class="label">Business profile</div></div>
+    </div>
+
+    <h2 style="margin:0 0 12px">Connect your channels</h2>
+    <div class="channels">
+      <div class="card">
+        <h2>Gmail</h2>
+        <p id="gmail-status-text">One-click OAuth — Yonderly replies to customer emails in the cloud.</p>
+        <div class="actions">
+          <button class="btn primary" id="connect-gmail-btn">Connect Gmail</button>
+          <button class="btn danger" id="disconnect-gmail-btn" style="display:none">Disconnect</button>
+        </div>
+        <p id="gmail-meta" style="margin-top:12px;font-size:.85rem;color:var(--muted)"></p>
+      </div>
+
+      <div class="card">
+        <h2>WhatsApp</h2>
+        <p id="wa-status-text">Link your WhatsApp Business number via Meta.</p>
+        <label for="whatsapp-phone" style="font-size:.85rem;color:var(--muted)">Your WhatsApp business number</label>
+        <input type="tel" id="whatsapp-phone" placeholder="+27 76 123 4567">
+        <div class="actions">
+          <button class="btn primary" id="save-wa-btn">Save number</button>
+          <a class="btn secondary" href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noopener">Meta setup guide</a>
+        </div>
+        <p id="wa-meta" style="margin-top:12px;font-size:.85rem;color:var(--muted)"></p>
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;color:var(--accent)">Webhook settings for Meta</summary>
+          <ol style="margin-top:10px">
+            <li>Callback URL: <code>https://yonderly.online/webhook</code></li>
+            <li>Verify token: <code>yonderly_verify_2026</code></li>
+            <li>Subscribe to the <strong>messages</strong> field</li>
+          </ol>
+        </details>
+      </div>
     </div>
 
     <div class="card">
@@ -72,16 +117,6 @@
     </div>
 
     <div class="card" style="margin-top:16px">
-      <h2>Gmail</h2>
-      <p id="gmail-status-text">Connect your business Gmail so Yonderly can read and reply to customer emails in the cloud — no local scripts.</p>
-      <div class="actions">
-        <button class="btn primary" id="connect-gmail-btn" style="display:none">Connect Gmail</button>
-        <button class="btn danger" id="disconnect-gmail-btn" style="display:none">Disconnect</button>
-      </div>
-      <p id="gmail-meta" style="margin-top:12px;font-size:.85rem"></p>
-    </div>
-
-    <div class="card" style="margin-top:16px">
       <h2>Recent email activity</h2>
       <p id="email-empty">No emails handled yet.</p>
       <table id="email-table" style="display:none">
@@ -91,12 +126,6 @@
         <tbody id="email-rows"></tbody>
       </table>
     </div>
-
-    <div class="card" style="margin-top:16px">
-      <h2>How it works</h2>
-      <p>1. Complete onboarding → 2. Connect Gmail → 3. Yonderly checks your inbox every 5 minutes and replies automatically.</p>
-      <p>Newsletters and marketing emails are skipped. Real customer emails get an AI reply signed with your business name.</p>
-    </div>
   </div>
 
   <script src="/js/auth.js"></script>
@@ -105,12 +134,19 @@
     const statusBadge = document.getElementById('status-badge');
     const welcomeText = document.getElementById('welcome-text');
     const setupBtn = document.getElementById('setup-btn');
+    const setupHint = document.getElementById('setup-hint');
     const connectGmailBtn = document.getElementById('connect-gmail-btn');
     const disconnectGmailBtn = document.getElementById('disconnect-gmail-btn');
     const gmailStatusText = document.getElementById('gmail-status-text');
     const gmailMeta = document.getElementById('gmail-meta');
     const gmailSuccess = document.getElementById('gmail-success');
     const gmailError = document.getElementById('gmail-error');
+    const waStatusText = document.getElementById('wa-status-text');
+    const waMeta = document.getElementById('wa-meta');
+    const whatsappPhoneInput = document.getElementById('whatsapp-phone');
+    const saveWaBtn = document.getElementById('save-wa-btn');
+
+    let accountCache = null;
 
     document.getElementById('signout-btn').onclick = () => YonderlyAuth.signOut();
 
@@ -131,6 +167,34 @@
       } catch (err) {
         disconnectGmailBtn.disabled = false;
         alert(err.message || 'Disconnect failed');
+      }
+    };
+
+    saveWaBtn.onclick = async () => {
+      if (!accountCache?.businessProfile) {
+        alert('Complete your business profile first.');
+        location.href = '/onboarding';
+        return;
+      }
+      saveWaBtn.disabled = true;
+      try {
+        const p = accountCache.businessProfile;
+        await YonderlyAuth.saveProfile({
+          business_name: p.business_name,
+          offerings: p.offerings,
+          prices: p.prices,
+          common_questions: p.common_questions,
+          tone: p.tone,
+          contact_email: p.contact_email,
+          restrictions: p.restrictions,
+          whatsapp_phone: whatsappPhoneInput.value.trim(),
+        });
+        waMeta.textContent = 'WhatsApp number saved.';
+        document.getElementById('stat-wa').textContent = 'Saved';
+      } catch (err) {
+        alert(err.message || 'Save failed');
+      } finally {
+        saveWaBtn.disabled = false;
       }
     };
 
@@ -190,14 +254,32 @@
       }).join('');
     }
 
+    function setChannelButtonsEnabled(enabled, reason) {
+      connectGmailBtn.disabled = !enabled;
+      saveWaBtn.disabled = !enabled;
+      if (!enabled && reason) {
+        gmailStatusText.textContent = reason;
+        waStatusText.textContent = reason;
+      }
+    }
+
     function renderGmail(gmail) {
-      const canUse = gmail.canUseEmail;
-      if (!canUse) {
-        connectGmailBtn.style.display = 'none';
+      if (!gmail.canUseEmail) {
+        connectGmailBtn.style.display = 'inline-block';
         disconnectGmailBtn.style.display = 'none';
-        gmailStatusText.textContent = 'Subscribe or use test mode, then complete your business profile before connecting Gmail.';
+        connectGmailBtn.disabled = true;
+        gmailStatusText.textContent = 'Subscribe to unlock email, or ask support to enable test mode.';
         return;
       }
+
+      if (!gmail.hasProfile) {
+        connectGmailBtn.style.display = 'inline-block';
+        disconnectGmailBtn.style.display = 'none';
+        connectGmailBtn.disabled = true;
+        return;
+      }
+
+      connectGmailBtn.disabled = false;
 
       if (gmail.connected) {
         document.getElementById('stat-email').textContent = 'Connected';
@@ -216,11 +298,45 @@
         document.getElementById('stat-email').textContent = 'Not connected';
         connectGmailBtn.style.display = 'inline-block';
         disconnectGmailBtn.style.display = 'none';
-        gmailStatusText.textContent = 'Connect your business Gmail. Replies run entirely in the cloud — nothing to install locally.';
-        gmailMeta.textContent = '';
+        gmailStatusText.textContent = 'Click Connect Gmail to authorize Yonderly. Replies run in the cloud — no local scripts.';
+        gmailMeta.textContent = gmail.statusError ? ('Note: ' + gmail.statusError) : '';
       }
 
-      renderEmailActivity(gmail.recentMessages);
+      renderEmailActivity(gmail.recentMessages || []);
+    }
+
+    function renderWhatsApp(account) {
+      const canUse = account.isActive || !account.requireSubscription;
+      const profile = account.businessProfile;
+      const phone = profile?.whatsapp_phone || '';
+
+      if (phone) {
+        whatsappPhoneInput.value = phone;
+        document.getElementById('stat-wa').textContent = 'Saved';
+      } else {
+        document.getElementById('stat-wa').textContent = canUse ? 'Not set' : 'Locked';
+      }
+
+      if (!canUse) {
+        saveWaBtn.disabled = true;
+        waStatusText.textContent = 'Subscribe to unlock WhatsApp setup.';
+        return;
+      }
+
+      if (!account.hasBusinessProfile) {
+        saveWaBtn.disabled = true;
+        return;
+      }
+
+      saveWaBtn.disabled = false;
+
+      if (account.whatsappPlatformReady) {
+        waStatusText.textContent = 'Platform webhook is live. Save your number, then finish Meta setup (link below).';
+        waMeta.textContent = 'Customers can message your Meta-linked WhatsApp number and Yonderly will reply.';
+      } else {
+        waStatusText.textContent = 'Save your business number here. Meta webhook token must be configured on the server.';
+        waMeta.textContent = 'Ask support to refresh the Meta access token if WhatsApp stops replying.';
+      }
     }
 
     async function boot() {
@@ -229,8 +345,8 @@
       if (!session) return;
 
       const account = await YonderlyAuth.fetchAccount();
-      const email = account.user.email;
-      welcomeText.textContent = 'Signed in as ' + email + '.';
+      accountCache = account;
+      welcomeText.textContent = 'Signed in as ' + account.user.email + '.';
 
       if (account.requireSubscription && !account.isActive) {
         statusBadge.textContent = 'No subscription';
@@ -250,22 +366,32 @@
       if (account.hasBusinessProfile && account.businessProfile) {
         document.getElementById('stat-business').textContent = account.businessProfile.business_name;
         setupBtn.textContent = 'Edit business profile';
+        setupHint.style.display = 'none';
       } else {
         document.getElementById('stat-business').textContent = 'Not set up';
+        setupHint.style.display = 'block';
       }
 
       const canUseEmail = account.isActive || !account.requireSubscription;
-      let gmail = { connected: false, recentMessages: [], canUseEmail };
+      const gmail = {
+        connected: false,
+        recentMessages: [],
+        canUseEmail,
+        hasProfile: account.hasBusinessProfile,
+        statusError: null,
+      };
+
       if (canUseEmail && account.hasBusinessProfile) {
         try {
           const status = await YonderlyAuth.fetchGmailStatus();
-          gmail = { ...status, canUseEmail: true };
+          Object.assign(gmail, status, { canUseEmail: true, hasProfile: true });
         } catch (err) {
-          gmailStatusText.textContent = err.message || 'Could not load Gmail status';
+          gmail.statusError = err.message || 'Gmail status unavailable — Connect may still work.';
         }
       }
 
       renderGmail(gmail);
+      renderWhatsApp(account);
     }
 
     boot().catch((err) => {
